@@ -1,0 +1,22 @@
+{
+  "name": "spendguard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build -w @spendguard/contracts && npm run build -w @spendguard/core && npm run build -w @spendguard/ledger && npm run build -w @spendguard/serv && npm run build -w @spendguard/adapters && npm run build -w @spendguard/api",
+    "typecheck": "npm run typecheck -ws --if-present",
+    "test": "npm run test -ws --if-present",
+    "dev:api": "npm run dev -w @spendguard/api"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}
