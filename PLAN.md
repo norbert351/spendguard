@@ -73,13 +73,56 @@ spendguard/
 
 ## ✅ Done list (living)
 - [x] PLAN.MD written (this file)
-- [ ] Monorepo scaffold + deps installed
-- [ ] contracts package (schemas)
-- [ ] core decision engine + tests
-- [ ] ledger (node:sqlite + proof chain) + tests
-- [ ] serv client + tests
-- [ ] x402 bill-swap binder + counterfactual test
-- [ ] agentkit adapter
-- [ ] API backend
-- [ ] build + typecheck + full test pass
-- [ ] git init + push
+- [x] Monorepo scaffold + deps installed
+- [x] contracts package (schemas)
+- [x] core decision engine + tests
+- [x] ledger (node:sqlite + proof chain) + tests
+- [x] serv client + tests
+- [x] x402 bill-swap binder + counterfactual test
+- [x] agentkit adapter
+- [x] API backend
+- [x] build + typecheck + full test pass (28/28)
+- [x] git init + push (norbert351/spendguard, master, b4d8887)
+
+---
+
+## 🔬 VERIFIED EVIDENCE (locked 2026-09-22 — downstream-backed thesis anchors)
+
+### 1. Visa "23% trust" — VERIFIED FULLY (was PARTIAL)
+- **Exact stat:** *"Only 23% of U.S. consumers trust GenAI to handle payment transactions on their behalf."* — Visa Trust Index for agentic commerce.
+- **Methodology:** Harris Poll Omnibus on behalf of Visa, **n=2,065 US adults, fielded May 26–28 2026**, matched to US Census General Adult population. Per-brand payment question subsample = 1,028–1,034.
+- **Shop-vs-pay split:** 72% have used an AI assistant (shop/recommend) vs 23% trust GenAI to PAY. ⚠️ Cite as 72% shop vs 23% pay — do NOT invent a directly-paired question.
+- **Visa's plan:** Visa Intelligent Commerce (100+ cos; powers Amazon "Buy for Me" + Meta autofill), Trusted Agent Protocol, Agentic Directory, Agent Score, Agentic Ready (150+ issuers), tokenized payment "digital keys." Guardrails = authenticated tokenized credential + spend/where/when permissions + merchant whitelists + thresholds + HITL → full autonomy. B2B (procurement/invoicing) goes first.
+- **Trust jump:** **61%** would trust Visa for agentic payments (23%→61%, "acceptance almost triples"); **68%** ages 18–34, **71%** frequent AI users.
+- **Precision warning:** 23% is the *payment-side* trust stat — NOT general "trust AI with money." Keep it precise in the X post.
+- Sources: Visa official PR + Perspectives (Jack Forestell, Chief Product & Strategy Officer), Forbes (John Koetsier, Sep 9 2026, verbatim via Yahoo Finance republication), CardRates / SmallBizTrends / FinelyPick (matched). Full report: `/home/ubuntu/forbes_visa_23percent_verification.md`.
+
+### 2. Robinhood MCP — VERIFIED (was UNVERIFIED). This changes the Mainnet/MCP build path.
+- **Exact inventory (official, Ref 5847437, live 2026-09-22): 57 documented tools** across 7 classes.
+- **20 are WRITE/mutation tools** — the surface the guardrail must gate. **9 order tools:** `place/review/cancel` × {equity_order, option_order, crypto_order}. Plus 8 watchlist writes + 3 scan writes. **37 read-only.**
+- **Rollout (Sep 22 2026):** order placement LIVE for **long equities + options + crypto**. Event contracts + futures NOT exposed. Crypto excluded in NY + some states; agent can't transfer/stake/lend. No margin borrowing.
+- **Agentic account model:** order placement walled to separate funded "Agentic account"; read scope = ALL accounts. **No spend/loss/kill-switch cap beyond the account balance + confirmation setting** (confirmed NOT documented). Unfunded by default.
+- **Audit gap confirmed (the guardrail's exact market):** no record of what the agent did/considered/declined, `agentic_allowed` account ambiguity, silent watchlist writes, irreversible fills, kill-switch can't unwind a filled trade, credentials pasted in chat. Liability 100% on customer.
+- ⚠️ 57 = **maximum documented surface**; per-session exposure depends on per-account options/crypto approval → **guardrail must enumerate tools at runtime, not trust a hardcoded list.**
+- Also: **Agentic Credit Card (Banking MCP)** — second supporting endpoint (`banking-agent.robinhood.com/mcp/banking`) with real guardrails (virtual-card wall, manual approval, required monthly limit). A second surface to cover.
+- Full report: `/home/ubuntu/robinhood_mcp/ROBINHOOD_MCP_INVENTORY.md`. **Ignore all unofficial GitHub robin_stocks wrappers — NOT the product.**
+
+### 3. First-person social quotes — 21 captured (16 VERIFIED full-text, 5 Reddit URL-verified, X unreachable)
+- **Dominant pain = unbounded autonomy → surprise bills.** HN (all full-text fetched): `$600` overnight recursive loop (2026-03-18), `$32` runaway kill-switch story (2026-03-17), `$34,895` invoice would "financially destroy me" (2026-04-16), `$37,901.73` "complete lack of hard safety rails" (2026-04-28), GitHub `$200` silently burned by Claude Code (2026-04-25), dev.to `$47` bill (2026-05-26).
+- **Trust framing:** "Would you trust an AI with $500? yes for reversible actions, not yet irreversible" (2026-03-14); "people give these agents full wallet access then get surprised when drained lol" (2026-03-22); trading agent "lost a bit of money, stop losses set too close to the top" (2026-09-08).
+- **The coping = exactly SERV**: hard dollar caps, kill switches, pre-authorized spend policies — *"the trust unit is the policy, not the payment."*
+- ⚠️ Reddit snippets only (403'd from this IP); X fully unreachable (no quotes). Deck should get logged-in screenshots for the social-proof section.
+- Full deliverable: `/home/ubuntu/serv_evidence/quotes.md`.
+
+### 🎯 IMPACT ON BUILD DIRECTION
+- **Track: AGENTKIT remains primary** (strongest verified evidence: #1404 bill-swap bug + 3 open GitHub issues + named losses). The counterfactual binder is the load-bearing demo.
+- **Mainnet/MCP is now a REAL second track** (was previously hampered by UNVERIFIED tool list): the 20 write tools + audit gap give a concrete second demo surface (e.g., a `place_crypto_order` through the guardrail). Doable by Sep 28.
+- **X post should carry BOTH:** the 23%→61% Visa trust anchor AND the $600/$32/$34,895 surprise-bill quotes (all the emotional hooks). Keep the 23% wording precise (payment-side).
+- **"the trust unit is the policy, not the payment"** = a strong X-post line from the research.
+
+## 🔧 Phase 2 (next) — from the now-locked evidence
+- [ ] Replayable injection-drain demo (the $600-loop / $200-claude-code style attack) → guardrail intercepts
+- [ ] Real AgentKit CDP wallet action fired through the guardrail (decide→verify→bind→sign)
+- [ ] Robinhood MCP `place_crypto_order` gated demo (uses the verified 57-tool surface — runtime tool enumeration)
+- [ ] Minimal UI (decision feed + ledger viewer + proof card)
+- [ ] X post: 23%→61% Visa anchor + surprise-bill quotes + the counterfactual screenshot
