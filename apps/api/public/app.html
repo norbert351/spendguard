@@ -174,7 +174,14 @@
 </footer>
 
 <script>
-async function j(u,o){const r=await fetch(u,o);return r.json();}
+// API key support: ?key=<SPENDGUARD_API_KEY> lets the control plane call the guarded service.
+const APIKEY = new URLSearchParams(window.location.search).get("key") || "";
+async function j(u,o){
+  const o2={...(o||{})};
+  o2.headers={...(o2.headers||{})};
+  if(APIKEY) o2.headers["x-api-key"]=APIKEY;
+  try{const r=await fetch(u,o2); if(r.status===401) throw new Error("unauthorized — append ?key=<API_KEY>"); return await r.json();}catch(e){throw e;}
+}
 
 async function refreshLedger(){
   const d=await j("./api/ledger");

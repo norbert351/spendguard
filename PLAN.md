@@ -155,6 +155,14 @@ spendguard/
 ### Live-verified (smoke test)
 freeze→deny·unfreeze→allow · HITL require_human→approve→allow · velocity 12th→rate_limited (cap 10) · proof by actionId · ledger kinds real (robinhood_order, not unknown)
 
+## ✅ REAL-PRODUCT hardening (commit pending — 44/44 tests)
+Moved SpendGuard from "demo that resets" to a persistent, authenticated service:
+- **Persistent storage** — ledger + policies + windows now back a real sqlite file (`data/audit.sqlite`, survives restart). Verified: events + policies persist across restart.
+- **API-key auth** — all `/api/*` endpoints require `x-api-key` (401 without). Public: landing + control-plane UI shell + assets. Verified full 401/200 matrix.
+- **Live-agent endpoint** — `POST /api/agent/action` is the REAL seam an AgentKit/Robinhood/x402 agent calls: decide → serv-verify → bind → audited proof, with per-agent window accounting. Returns 200 (allow) / 202 (require_human) / 403 (deny).
+- Control-plane UI passes `?key=` to its API calls.
+Run: `SPENDGUARD_PORT=8181 SPENDGUARD_API_KEY=... node apps/api/dist/index.js`
+
 ### Live-verified (smoke test on :8181)
 - `POST /api/demo/bill-swap` → **contained, saved $5,900**
 - `POST /api/demo/overnight-loop` → **contained, 120 loop-burns stopped**

@@ -40,6 +40,21 @@ export class AuditLedger {
         prev_hash TEXT NOT NULL,
         receipt_id TEXT
       );
+      CREATE TABLE IF NOT EXISTS policies (
+        agent_id TEXT PRIMARY KEY,
+        json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS windows (
+        agent_id TEXT PRIMARY KEY,
+        spent TEXT NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        window_start INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS config (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
     `);
   }
 
@@ -173,5 +188,54 @@ export class AuditLedger {
   /** For dependency-injection tests / manual seeding. */
   _raw(): DatabaseSyncType {
     return this.db;
+  }
+
+  /** Seed a default policy if none exists yet (returns true if seeded). */
+  seedPolicyIfAbsent(agentId: string, policyJson: string): boolean {
+    const row = this.db.prepare('SELECT agent_id FROM policies WHERE agent_id = ?').get(agentId) as { agent_id: string } | undefined;
+    if (row) return false;
+    this.savePolicy(agentId, policyJson);
+    return true;
+  }
+
+  savePolicy(agentId: string, policyJson: string): void {
+    this.db
+      .prepare('INSERT INTO policies (agent_id, json, updated_at) VALUES (?, ?, ?) ON CONFLICT(agent_id) DO UPDATE SET json=excluded.json, updated_at=excluded.updated_at')
+      .run(agentId, policyJson, new Date().toISOString());
+  }
+
+  loadPolicies(): Record<string, string> {
+    const rows = this.db.prepare('SELECT agent_id, json FROM policies').all() as Array<{ agent_id: string; json: string }>;
+    const out: Record<string, string> = {};
+    for (const r of rows) out[r.agent_id] = r.json;
+    return out;
+  }
+
+  getPolicy(agentId: string): string | null {
+    const row = this.db.prepare('SELECT json FROM policies WHERE agent_id = ?').get(agentId) as { json: string } | undefined;
+    return row?.json ?? null;
+  }
+
+  saveWindow(agentId: string, spent: string, count: number, windowStart: number): void {
+    this.db
+      .prepare('INSERT INTO windows (agent_id, spent, count, window_start) VALUES (?, ?, ?, ?) ON CONFLICT(agent_id) DO UPDATE SET spent=excluded.spent, count=excluded.count, window_start=excluded.window_start')
+      .run(agentId, spent, count, windowStart);
+  }
+
+  loadWindow(agentId: string): { spent: string; count: number; windowStart: number } | null {
+    const row = this.db.prepare('SELECT spent, count, window_start FROM windows WHERE agent_id = ?').get(agentId) as
+      | { spent: string; count: number; window_start: number }
+      | undefined;
+    if (!row) return null;
+    return { spent: row.spent, count: row.count, windowStart: row.window_start };
+  }
+
+  setConfig(key: string, value: string): void {
+    this.db.prepare('INSERT INTO config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key, value);
+  }
+
+  getConfig(key: string): string | null {
+    const row = this.db.prepare('SELECT value FROM config WHERE key = ?').get(key) as { value: string } | undefined;
+    return row?.value ?? null;
   }
 }

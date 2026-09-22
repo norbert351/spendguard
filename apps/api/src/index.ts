@@ -21,62 +21,71 @@ import type { AgentPolicy, ActionIntent, PaymentBinding, SignableBundle, Decisio
  */
 
 const PORT = Number(process.env.SPENDGUARD_PORT ?? 8181);
-const LEDGER_FILE = process.env.SPENDGUARD_LEDGER ?? ':memory:';
+const LEDGER_FILE = process.env.SPENDGUARD_LEDGER ?? '/home/ubuntu/spendguard/data/audit.sqlite';
 
 const engine = new DecisionEngine(defaultPaymentNormalizer);
 const ledger = new AuditLedger(LEDGER_FILE);
 const serv = new ServClient({ mode: (process.env.SERV_MODE as 'local' | 'remote') ?? 'local', endpoint: process.env.SERV_ENDPOINT, apiKey: process.env.SERV_API_KEY });
 
-// ---- Multi-agent policy registry ----
-const policies = new Map<string, AgentPolicy>();
-function seedPolicies(): void {
-  policies.set('demo-trader', {
-    agentId: 'demo-trader',
-    spend: {
-      maxAmountPerAction: '1000.00',
-      maxAmountPerWindow: '2500.00',
-      windowMs: 86400000,
-      maxActionsPerWindow: 5,
-      allowedPayees: ['0xMerchant', 'robinhood:equity', 'robinhood:option', 'robinhood:crypto'],
-      allowedKinds: ['transfer', 'x402_payment', 'robinhood_order'],
-      humanInLoopThreshold: '100.00',
-      frozen: false,
-    },
-    guardianAddress: '0xGuardian',
-    note: 'SERV hackathon demo policy',
-  });
-  policies.set('rh-agent', {
-    agentId: 'rh-agent',
-    spend: {
-      maxAmountPerAction: '1000.00',
-      maxAmountPerWindow: '5000.00',
-      windowMs: 86400000,
-      maxActionsPerWindow: 10,
-      allowedPayees: ['robinhood:equity', 'robinhood:option', 'robinhood:crypto'],
-      allowedKinds: ['robinhood_order'],
-      humanInLoopThreshold: '500.00',
-      frozen: false,
-    },
-    guardianAddress: '0xGuardianRH',
-    note: 'Robinhood MCP trading agent',
-  });
+// ---- API key auth (real service, not an open device) ----
+const API_KEY = process.env.SPENDGUARD_API_KEY ?? '';
+function authorized(req: IncomingMessage): boolean {
+  if (!API_KEY) return true; // no key configured = open (dev mode)
+  const h = req.headers['x-api-key'] ?? req.headers['authorization']?.toString().replace(/^Bearer\s+/i, '');
+  return h === API_KEY;
 }
-seedPolicies();
 
-// ---- Per-agent window accounting (spend + count, for velocity guard) ----
-type WindowRec = WindowState & { spent: string; count: number };
-const windows = new Map<string, WindowRec>();
+// ---- Persistent multi-agent policy registry (seeded into sqlite on boot) ----
+function defaultPolicy(agentId: string): AgentPolicy {
+  return {
+    agentId,
+    spend: {
+      maxAmountPerAction: '1000.00',
+      maxAmountPerWindow: agentId === 'rh-agent' ? '5000.00' : '2500.00',
+      windowMs: 86400000,
+      maxActionsPerWindow: agentId === 'rh-agent' ? 10 : 5,
+      allowedPayees: agentId === 'rh-agent' ? ['robinhood:equity', 'robinhood:option', 'robinhood:crypto'] : ['0xMerchant', 'robinhood:equity', 'robinhood:option', 'robinhood:crypto'],
+      allowedKinds: agentId === 'rh-agent' ? ['robinhood_order'] : ['transfer', 'x402_payment', 'robinhood_order'],
+      humanInLoopThreshold: agentId === 'rh-agent' ? '500.00' : '100.00',
+      frozen: false,
+    },
+    guardianAddress: agentId === 'rh-agent' ? '0xGuardianRH' : '0xGuardian',
+    note: agentId === 'rh-agent' ? 'Robinhood MCP trading agent' : 'SERV hackathon demo policy',
+  };
+}
+const policies = new Map<string, AgentPolicy>();
+function loadPoliciesFromDisk(): void {
+  const raw = ledger.loadPolicies();
+  for (const [id, json] of Object.entries(raw)) {
+    try { policies.set(id, JSON.parse(json) as AgentPolicy); } catch { /* skip corrupt */ }
+  }
+  // seed defaults for known agents if absent
+  for (const id of ['demo-trader', 'rh-agent']) {
+    if (!policies.has(id)) {
+      const p = defaultPolicy(id);
+      policies.set(id, p);
+      ledger.savePolicy(id, JSON.stringify(p));
+    }
+  }
+}
+loadPoliciesFromDisk();
+function persistPolicy(id: string): void { ledger.savePolicy(id, JSON.stringify(policies.get(id))); }
+
+// ---- Persistent per-agent window accounting ----
+type WindowRec = { spent: string; count: number; windowStart: number };
 function getWindow(agentId: string, now: number): { state: WindowRec; policy: AgentPolicy } {
   const policy = policies.get(agentId) ?? policies.get('demo-trader')!;
   const windowMs = policy.spend.windowMs ?? 86400000;
-  const cur = windows.get(agentId);
+  const persisted = ledger.loadWindow(agentId);
+  const cur = persisted ? (persisted as WindowRec) : null;
   if (!cur || now - cur.windowStart > windowMs) {
     const fresh: WindowRec = { spent: '0', count: 0, windowStart: now };
-    windows.set(agentId, fresh);
+    ledger.saveWindow(agentId, fresh.spent, fresh.count, fresh.windowStart);
     return { state: fresh, policy };
   }
   return { state: cur, policy };
 }
+function persistWindow(agentId: string, w: WindowRec): void { ledger.saveWindow(agentId, w.spent, w.count, w.windowStart); }
 
 // ---- Pending HITL approvals ----
 const pendingHITL = new Map<string, Decision>();
@@ -136,6 +145,14 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
   if (req.method === 'OPTIONS') return handleOptions(res);
 
+  // ---- auth gate (real service) ----
+  // Public: landing page + control-plane UI shell + static assets (marketing).
+  // Protected: ALL /api/* endpoints — the actual guardrail service an agent has
+  // to authenticate against (x-api-key). The control-plane UI passes ?key= to
+  // its own API calls; without it those calls 401.
+  const isPublic = (req.method === 'GET') && (path === '/' || path === '/index.html' || path === '/app' || path === '/app.html' || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg'));
+  if (!isPublic && !authorized(req)) return json(res, 401, { error: 'unauthorized — provide x-api-key' });
+
   if (req.method === 'GET' && path === '/api/health') {
     return json(res, 200, { status: 'ok', ledger: ledger.count(), service: 'spendguard', agents: [...policies.keys()] });
   }
@@ -163,6 +180,7 @@ const server = createServer(async (req, res) => {
     if (!p) return json(res, 404, { error: `no policy for '${id}'` });
     p.spend.frozen = isFreeze;
     policies.set(id, p);
+    persistPolicy(id);
     const evt: Decision = {
       decisionId: randomUUID(), actionId: randomUUID(), agentId: id, kind: 'policy_control',
       verdict: 'deny' as const, reason: { code: 'frozen', detail: isFreeze ? 'agent policy FROZEN by guardian' : 'agent policy UNFROZEN by guardian' },
@@ -185,6 +203,7 @@ const server = createServer(async (req, res) => {
       note: String(body.note ?? policies.get(id)?.note ?? ''),
     };
     policies.set(id, merged);
+    persistPolicy(id);
     return json(res, 200, { agentId: id, policy: merged.spend, saved: true });
   }
 
@@ -205,6 +224,7 @@ const server = createServer(async (req, res) => {
     if (approved.approvedBinding) {
       w.state.spent = addAmounts(w.state.spent, approved.approvedBinding.amount);
       w.state.count += 1;
+      persistWindow(pending.agentId, w.state);
     }
     ledger.append(approved, `hitl:${String(body.guardian ?? '0xGuardian')}`);
     return json(res, 200, { approved: true, decision: approved, audited: true });
@@ -263,10 +283,59 @@ const server = createServer(async (req, res) => {
     if (decision.verdict === 'allow' && decision.approvedBinding) {
       w.state.spent = addAmounts(w.state.spent, decision.approvedBinding.amount);
       w.state.count += 1;
+      persistWindow(agentId, w.state);
     }
     if (decision.verdict === 'require_human') recordPending(decision);
     ledger.append(decision);
     return json(res, 200, { decision, gated: decision.verdict, window: w.state });
+  }
+
+  // ---- POST /api/agent/action — the REAL service seam an agent calls ----
+  // Body: { agentId, kind, intent: { to, amount, chainId, token }, signPayload? }
+  // Runs the full rail: decide -> serv verify -> bind -> audit. Returns a
+  // signed proof when allowed. This is what a live AgentKit/Robinhood/x402
+  // agent would call before broadcasting.
+  if (req.method === 'POST' && path === '/api/agent/action') {
+    const body = await readBody(req);
+    const agentId = String(body.agentId ?? 'demo-trader');
+    const policy = policies.get(agentId) ?? policies.get('demo-trader')!;
+    const intent = {
+      id: randomUUID(),
+      agentId,
+      kind: String(body.kind ?? 'transfer'),
+      createdAt: new Date().toISOString(),
+      payload: body.intent ?? {},
+    } as ActionIntent;
+
+    const w = getWindow(intent.agentId, Date.now());
+    let decision = await engine.decide(intent, policy, w.state, Date.now());
+
+    if (decision.verdict === 'allow' || decision.verdict === 'require_human') {
+      const binding = defaultPaymentNormalizer.extractBinding(intent);
+      const v = await serv.verify(intent, binding);
+      if (v.code === 'injection') decision = { ...decision, verdict: 'deny', reason: { code: 'injection_detected', detail: v.detail } };
+      else if (v.code === 'shadow_refused') decision = { ...decision, verdict: 'deny', reason: { code: 'shadow_verify_failed', detail: v.detail } };
+    }
+    if (decision.verdict === 'allow' && decision.approvedBinding) {
+      w.state.spent = addAmounts(w.state.spent, decision.approvedBinding.amount);
+      w.state.count += 1;
+      persistWindow(intent.agentId, w.state);
+    }
+    if (decision.verdict === 'require_human') recordPending(decision);
+    ledger.append(decision);
+
+    // If the agent supplied a signable bundle, run the x402 bind as well.
+    let bind = undefined;
+    if (body.bundle) {
+      bind = bindToApproved(decision, body.bundle as SignableBundle);
+    }
+
+    return json(res, decision.verdict === 'allow' ? 200 : (decision.verdict === 'require_human' ? 202 : 403), {
+      decision,
+      bind,
+      window: w.state,
+      proof: ledger.makeProof(decision),
+    });
   }
 
   // ---- POST /api/decide  -> decide -> serv verify -> bind ----
@@ -293,6 +362,7 @@ const server = createServer(async (req, res) => {
     if (decision.verdict === 'allow' && decision.approvedBinding) {
       w.state.spent = addAmounts(w.state.spent, decision.approvedBinding.amount);
       w.state.count += 1;
+      persistWindow(intent.agentId, w.state);
     }
     if (decision.verdict === 'require_human') recordPending(decision);
     ledger.append(decision);
