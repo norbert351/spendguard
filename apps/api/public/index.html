@@ -272,7 +272,7 @@
 async function j(u,o){const r=await fetch(u,o);return r.json();}
 
 async function refreshLedger(){
-  const d=await j('/api/ledger');
+  const d=await j("./api/ledger');
   document.getElementById('statEvents').textContent=d.events.length;
   document.getElementById('statIntegrity').textContent=d.integrity.valid?'✓':'✗';
   const el=document.getElementById('ledgerRows');
@@ -286,7 +286,7 @@ async function refreshLedger(){
 async function runDemo(id){
   document.getElementById('demoResult').textContent='replaying…';
   const l=document.getElementById('layers'); l.innerHTML='';
-  const d=await j('/api/demo/'+id,{method:'POST'});
+  const d=await j("./api/demo/'+id,{method:'POST'});
   document.getElementById('statSaved').textContent='$'+parseFloat(d.notionalSaved||0).toLocaleString();
   document.getElementById('demoResult').innerHTML=`<b class="${d.contained?'g':'r'}">${d.contained?'CONTAINED':'NOT CONTAINED'}</b> · $${parseFloat(d.notionalSaved||0).toLocaleString()} saved · ${d.loopsStopped} loop-burns stopped · <span class="meta">trace ${d.traceId}</span>`;
   l.innerHTML=d.steps.map(s=>{
@@ -299,7 +299,7 @@ async function runDemo(id){
 
 async function rhOrder(allowed){
   const body={agentId:'rh-agent',agenticAccount:allowed?document.getElementById('rhAcct').value:'acct-growth',order:{kind:'crypto',side:'buy',symbol:document.getElementById('rhSym').value,notionalUsd:document.getElementById('rhNot').value,agenticAccount:allowed?document.getElementById('rhAcct').value:'acct-growth'}};
-  const d=await j('/api/robinhood',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  const d=await j("./api/robinhood',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
   const dv=d.decision;
   const cls=dv.verdict==='allow'?'g':dv.verdict==='deny'?'r':'w';
   document.getElementById('rhOut').innerHTML=`<span class="val ${cls}">${dv.verdict}</span> <span class="meta">${dv.reason.code} — ${dv.reason.detail}</span>`;
@@ -307,22 +307,22 @@ async function rhOrder(allowed){
 }
 
 async function refreshPolicy(){
-  const d=await j('/api/policy');
+  const d=await j("./api/policy');
   document.getElementById('policyBox').innerHTML=(d.agents||[]).map(a=>{
     const s=a.spend||{}; const fr=s.frozen;
     return `<div class="row"><span class="lbl"><b>${a.agentId}</b> · cap $${s.maxAmountPerAction} · HITL &gt;$${s.humanInLoopThreshold} · ${s.maxActionsPerWindow} actions/window</span><span class="val ${fr?'frozen':'g'}">${fr?'FROZEN':'active'}</span><button class="btn ghost" onclick="toggleFreeze('${a.agentId}',${!fr})">${fr?'unfreeze':'freeze'}</button></div>`;
   }).join('');
 }
-async function toggleFreeze(id,val){await j('/api/policy/'+id+(val?'/freeze':'/unfreeze'),{method:'POST'});refreshPolicy();refreshLedger();}
+async function toggleFreeze(id,val){await j("./api/policy/'+id+(val?'/freeze':'/unfreeze'),{method:'POST'});refreshPolicy();refreshLedger();}
 
 async function refreshPending(){
-  const d=await j('/api/pending'); const p=d.pending||[];
+  const d=await j("./api/pending'); const p=d.pending||[];
   document.getElementById('pendingBox').innerHTML=p.length?p.map(x=>`<div class="row"><span class="lbl"><span class="val w">HITL</span> $${x.approvedBinding?.amount} ${x.kind}</span><span class="meta">${x.decisionId.slice(0,8)}</span><button class="btn ghost" onclick="approve('${x.decisionId}')">approve</button></div>`).join(''):'<span class="meta">none pending</span>';
 }
-async function approve(id){await j('/api/approve',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({decisionId:id,guardian:'0xGuardian'})});refreshPending();refreshLedger();}
+async function approve(id){await j("./api/approve',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({decisionId:id,guardian:'0xGuardian'})});refreshPending();refreshLedger();}
 
 async function getProof(){
-  const d=await j('/api/proof/'+document.getElementById('proofId').value);
+  const d=await j("./api/proof/'+document.getElementById('proofId').value);
   document.getElementById('proofOut').innerHTML=`<div class="code">${JSON.stringify(d.proof,null,1)}</div>`;
 }
 
