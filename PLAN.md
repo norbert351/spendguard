@@ -121,8 +121,21 @@ spendguard/
 - **"the trust unit is the policy, not the payment"** = a strong X-post line from the research.
 
 ## 🔧 Phase 2 (next) — from the now-locked evidence
-- [ ] Replayable injection-drain demo (the $600-loop / $200-claude-code style attack) → guardrail intercepts
-- [ ] Real AgentKit CDP wallet action fired through the guardrail (decide→verify→bind→sign)
-- [ ] Robinhood MCP `place_crypto_order` gated demo (uses the verified 57-tool surface — runtime tool enumeration)
-- [ ] Minimal UI (decision feed + ledger viewer + proof card)
+- [x] Replayable injection-drain demo (the $600-loop / $200-claude-code style attack) → guardrail intercepts
+- [x] Real AgentKit CDP wallet action fired through the guardrail (decide→verify→bind→sign)
+- [x] Robinhood MCP `place_crypto_order` gated demo (uses the verified 57-tool surface — runtime tool enumeration)
+- [x] Minimal UI (decision feed + ledger viewer + proof card + live demo triggers)
 - [ ] X post: 23%→61% Visa anchor + surprise-bill quotes + the counterfactual screenshot
+
+## ✅ Phase 2 shipped (commit d9776ba, pushed 2026-09-22)
+- **`packages/adapters/src/robinhood.ts`** — verified 57-tool surface modeled; 9 order tools + 20 write tools; runtime tool enumeration (`enumerateRobinhoodTools`); `guardRobinhoodOrder` enforces the **account-boundary defence** (refuses orders aimed at a non-`agentic_allowed` account) + engine spend/HITL checks. Keys: `ROBINHOOD_TOTAL_TOOLS=57`, `ROBINHOOD_ORDER_TOOLS=9`.
+- **`packages/adapters/src/drain-demo.ts`** — replayable counterfactual centrepiece: 3 canned attacks (bill-swap #1404, "ignore previous" exfil, overnight-loop $600) run through three guard layers (injection-screen → decision-engine → x402-binder). Returns contained/saved/loopsStopped + trace.
+- **`apps/api`** — new routes: `POST /api/demo/:id` (replays the canned attacks), `POST /api/robinhood` (gates a real order), `GET /` (static UI).
+- **`apps/api/public/index.html`** — live UI: demo triggers, per-layer outcome cards, Robinhood order gate, append-only ledger feed w/ hash-chain integrity badge.
+- **Tests:** `phase2.spec.ts` (11) — Robinhood gating (57/9 counts, account-boundary deny, cap deny, HITL, enumeration) + all 3 drain attacks contained. **39/39 suite total.**
+
+### Live-verified (smoke test on :8181)
+- `POST /api/demo/bill-swap` → **contained, saved $5,900**
+- `POST /api/demo/overnight-loop` → **contained, 120 loop-burns stopped**
+- `POST /api/robinhood` wrong-acct order → `deny: agent_aimed_non_agentic_account`; allowed-acct $250 → `require_human` (HITL)
+- `GET /` → HTTP 200 UI; ledger integrity `VALID`
