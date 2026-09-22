@@ -112,15 +112,23 @@ async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> 
   }
 }
 
-/** Serve the bundled static UI (single-file HTML). */
-function serveUI(res: ServerResponse): void {
-  const uiPath = new URL('../public/index.html', import.meta.url).pathname;
+/** Serve the bundled static UI (single-file HTML) + its image assets. */
+function serveUI(res: ServerResponse, asset?: string): boolean {
+  const pubDir = new URL('../public/', import.meta.url).pathname;
+  const file = asset ?? 'index.html';
+  const uiPath = pubDir + file;
   if (!existsSync(uiPath)) {
-    return json(res, 500, { error: 'UI not bundled; run npm run build -w @spendguard/api' });
+    if (!asset) json(res, 500, { error: 'UI not bundled; run npm run build -w @spendguard/api' });
+    return false;
   }
-  const html = readFileSync(uiPath, 'utf8');
-  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-length': Buffer.byteLength(html), 'access-control-allow-origin': '*', });
-  res.end(html);
+  const buf = readFileSync(uiPath);
+  let type = 'text/html; charset=utf-8';
+  if (file.endsWith('.png')) type = 'image/png';
+  else if (file.endsWith('.jpg') || file.endsWith('.jpeg')) type = 'image/jpeg';
+  else if (file.endsWith('.svg')) type = 'image/svg+xml';
+  res.writeHead(200, { 'content-type': type, 'content-length': buf.length, 'access-control-allow-origin': '*' });
+  res.end(buf);
+  return true;
 }
 
 const server = createServer(async (req, res) => {
@@ -224,9 +232,10 @@ const server = createServer(async (req, res) => {
     return json(res, 200, { proof });
   }
 
-  // ---- GET /  -> static UI ----
-  if (req.method === 'GET' && (path === '/' || path === '/index.html')) {
-    return serveUI(res);
+  // ---- GET /  or static asset  -> UI ----
+  if (req.method === 'GET' && (path === '/' || path === '/index.html' || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg'))) {
+    const asset = path === '/' || path === '/index.html' ? undefined : path.split('/').pop();
+    return serveUI(res, asset);
   }
 
   // ---- POST /api/demo/:id  -> replay a canned attack ----
