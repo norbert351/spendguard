@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>SpendGuard — Agent Trust Guardian</title>
+<style>
+  :root { --bg:#0b0d14; --panel:#141826; --panel2:#1a2130; --line:#262f42; --txt:#e7ebf4; --mut:#8a93a8; --ok:#3ddc84; --deny:#ff5c6c; --warn:#ffb454; --acc:#7c6cff; }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:ui-monospace,'SF Mono',Menlo,monospace; background:var(--bg); color:var(--txt); padding:20px; line-height:1.5; }
+  h1 { font-size:20px; letter-spacing:.5px; }
+  .tag { color:var(--mut); font-size:12px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; }
+  @media (max-width:720px){ .grid{grid-template-columns:1fr;} }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--mut); margin-bottom:12px; }
+  .btn { background:var(--acc); color:#fff; border:0; border-radius:8px; padding:8px 14px; font:inherit; cursor:pointer; margin:0 8px 8px 0; }
+  .btn:hover { filter:brightness(1.15); }
+  .btn.ghost { background:var(--panel2); border:1px solid var(--line); }
+  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #1d2435; font-size:12px; }
+  .row:last-child { border-bottom:0; }
+  .g { color:var(--ok); } .r { color:var(--deny); } .w { color:var(--warn); }
+  .layers { margin-top:10px; }
+  .layer { font-size:12px; padding:6px 8px; border-left:3px solid var(--line); background:var(--panel2); border-radius:4px; margin-top:6px; }
+  .layer b { text-transform:uppercase; font-size:11px; letter-spacing:.5px; }
+  .meta { color:var(--mut); font-size:11px; }
+  .big { font-size:28px; font-weight:700; }
+  .table { width:100%; border-collapse:collapse; font-size:11px; }
+  .table th,.table td { text-align:left; padding:6px 8px; border-bottom:1px solid #1d2435; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:20px; font-size:10px; font-weight:700; letter-spacing:.5px; }
+  .pill.g{background:#10351f;color:var(--ok);} .pill.r{background:#3a151b;color:var(--deny);} .pill.w{background:#3a2a0e;color:var(--warn);}
+</style>
+</head>
+<body>
+<h1>⛨ SpendGuard <span class="tag">agent trust guardian · SERV hackathon</span></h1>
+<p class="tag">Pre-execution guardrail + audited control plane for money-handling AI agents.</p>
+
+<div class="grid">
+  <div class="card">
+    <h2>Replay the counterfactual</h2>
+    <button class="btn" onclick="runDemo('bill-swap')">Bill-swap retry (#1404)</button>
+    <button class="btn" onclick="runDemo('exfil-ignore-prev')">"ignore previous" exfil</button>
+    <button class="btn" onclick="runDemo('overnight-loop')">Overnight loop ($600)</button>
+    <div id="demoResult" class="tag" style="margin-top:6px">Pick an attack to replay it through the three guard layers.</div>
+    <div id="layers" class="layers"></div>
+  </div>
+
+  <div class="card">
+    <h2>Gate a Robinhood MCP order</h2>
+    <div style="font-size:12px" class="row"><span>Tool surface</span><span class="w">57 documented · 9 order tools</span></div>
+    <div class="meta" style="margin:8px 0 4px">Agent attempts a crypto order (notional USD):</div>
+    <table class="table">
+      <tr><td>Symbol</td><td><input id="rhSym" value="BTCUSD" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:4px 6px;border-radius:6px;font:inherit;width:120px"></td></tr>
+      <tr><td>Notional</td><td><input id="rhNot" value="250.00" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:4px 6px;border-radius:6px;font:inherit;width:120px"></td></tr>
+      <tr><td>Agentic acct</td><td><input id="rhAcct" value="acct-AGENTIC" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:4px 6px;border-radius:6px;font:inherit;width:120px"></td></tr>
+    </table>
+    <div style="margin-top:10px">
+      <button class="btn ghost" onclick="rhOrder(true)">Allowed account</button>
+      <button class="btn ghost" onclick="rhOrder(false)">Wrong account</button>
+    </div>
+    <div id="rhOut" class="tag" style="margin-top:6px">—</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card" style="grid-column:1/-1">
+    <h2>Audit ledger <span class="tag">append-only · sha-256 hash chain · integrity check below</span></h2>
+    <div id="ledger"><div class="tag">loading…</div></div>
+  </div>
+</div>
+
+<script>
+async function j(u,o){const r=await fetch(u,o);return r.json();}
+async function refreshLedger(){
+  const d=await j('/api/ledger');
+  const ok=d.integrity.valid;
+  const el=document.getElementById('ledger');
+  const rows=(d.events||[]).slice(0,12).map(e=>
+    `<div class="row"><span>${e.kind}</span><span class="${e.verdict==='allow'?'g':e.verdict==='deny'?'r':'w'}">${e.verdict}</span><span>${e.reasonCode}</span><span>${(e.receiptId||'').slice(0,14)||''}</span><span class="meta">${(e.hash||'').slice(0,8)}…</span></div>`
+  ).join('');
+  el.innerHTML=`<div class="row"><b>integrity</b><span class="${ok?'g':'r'}">${ok?'VALID':'BROKEN'} · ${d.integrity.verified} events</span></div>`+rows;
+}
+async function runDemo(id){
+  const out=document.getElementById('demoResult');
+  const l=document.getElementById('layers');
+  out.textContent='replaying…'; l.innerHTML='';
+  const d=await j('/api/demo/'+id,{method:'POST'});
+  out.innerHTML=`<b class="${d.contained?'g':'r'}">${d.contained?'CONTAINED' : 'NOT CONTAINED'}</b> · $${parseFloat(d.notionalSaved||0).toLocaleString()} saved · ${d.loopsStopped} loop-burns stopped`;
+  const layers=['injection-screen','decision-engine','x402-binder'];
+  l.innerHTML=d.steps.map(s=>{
+    const cls=s.outcome==='blocked'?'r':s.outcome==='allowed'?'w':'g';
+    return `<div class="layer"><b style="color:var(--${cls})">${s.layer}</b> · <span class="${cls}">${s.outcome}</span><div class="meta">${s.detail}</div></div>`;
+  }).join('') + `<div class="layer"><b>trace</b> <span class="meta">${d.traceId}</span></div>`;
+  refreshLedger();
+}
+async function rhOrder(allowed){
+  const body={
+    agentId:'demo-trader',
+    agenticAccount: allowed ? document.getElementById('rhAcct').value : 'acct-growth',
+    order:{
+      kind:'crypto', side:'buy', symbol:document.getElementById('rhSym').value,
+      notionalUsd:document.getElementById('rhNot').value,
+      agenticAccount: allowed ? document.getElementById('rhAcct').value : 'acct-growth',
+    }
+  };
+  const d=await j('/api/robinhood',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  const dv=d.decision;
+  document.getElementById('rhOut').innerHTML=
+    `<b class="${dv.verdict==='allow'?'g':dv.verdict==='deny'?'r':'w'}">${dv.verdict}</b> · ${dv.reason.code} — ${dv.reason.detail}`;
+  refreshLedger();
+}
+refreshLedger();
+setInterval(refreshLedger,5000);
+</script>
+</body>
+</html>

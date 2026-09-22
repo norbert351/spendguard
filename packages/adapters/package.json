@@ -18,11 +18,11 @@
   },
   "dependencies": {
     "@spendguard/contracts": "*",
-    "@spendguard/core": "*"
+    "@spendguard/core": "*",
+    "@spendguard/serv": "*"
   },
   "devDependencies": {
     "@spendguard/ledger": "*",
-    "@spendguard/serv": "*",
     "@types/node": "^22.5.0",
     "vitest": "^2.1.1"
   }

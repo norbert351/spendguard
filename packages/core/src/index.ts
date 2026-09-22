@@ -8,7 +8,12 @@ import type { ActionNormalizer } from './engine.js';
  */
 export const defaultPaymentNormalizer: ActionNormalizer = {
   isFunding(intent: ActionIntent): boolean {
-    return intent.kind === 'transfer' || intent.kind === 'x402_payment' || intent.kind === 'ixs_deposit';
+    return (
+      intent.kind === 'transfer' ||
+      intent.kind === 'x402_payment' ||
+      intent.kind === 'ixs_deposit' ||
+      intent.kind === 'robinhood_order'
+    );
   },
   extractBinding(intent: ActionIntent): PaymentBinding {
     const p = (intent.payload ?? {}) as Record<string, unknown>;

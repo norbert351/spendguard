@@ -1,9 +1,10 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { readFileSync, existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { DecisionEngine, defaultPaymentNormalizer, addAmounts, type WindowState } from '@spendguard/core';
 import { AuditLedger } from '@spendguard/ledger';
 import { ServClient } from '@spendguard/serv';
-import { bindToApproved } from '@spendguard/adapters';
+import { bindToApproved, replayDrainAttack, CANNED_ATTACKS, guardRobinhoodOrder, type RobinhoodOrder, type RobinhoodAccountGate } from '@spendguard/adapters';
 import type { AgentPolicy, ActionIntent, PaymentBinding, SignableBundle, Decision } from '@spendguard/contracts';
 
 /**
@@ -27,8 +28,8 @@ const defaultAgent: AgentPolicy = {
     maxAmountPerAction: '1000.00',
     maxAmountPerWindow: '2500.00',
     windowMs: 86400000,
-    allowedPayees: ['0xMerchant'],
-    allowedKinds: ['transfer', 'x402_payment'],
+    allowedPayees: ['0xMerchant', 'robinhood:equity', 'robinhood:option', 'robinhood:crypto'],
+    allowedKinds: ['transfer', 'x402_payment', 'robinhood_order'],
     humanInLoopThreshold: '100.00',
   },
   guardianAddress: '0xGuardian',
@@ -60,6 +61,17 @@ async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> 
   return JSON.parse(raw) as Record<string, unknown>;
 }
 
+/** Serve the bundled static UI (single-file HTML). */
+function serveUI(res: ServerResponse): void {
+  const uiPath = new URL('../public/index.html', import.meta.url).pathname;
+  if (!existsSync(uiPath)) {
+    return json(res, 500, { error: 'UI not bundled; run npm run build -w @spendguard/api' });
+  }
+  const html = readFileSync(uiPath, 'utf8');
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-length': Buffer.byteLength(html) });
+  res.end(html);
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
   const path = url.pathname;
@@ -74,6 +86,38 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'GET' && path === '/api/policy') {
     return json(res, 200, { agentId: defaultAgent.agentId, policy: defaultAgent.spend, guardianAddress: defaultAgent.guardianAddress });
+  }
+
+  // GET /  -> static UI (decision feed + ledger + demo trigger)
+  if (req.method === 'GET' && (path === '/' || path === '/index.html')) {
+    return serveUI(res);
+  }
+
+  // POST /api/demo/:id  -> run one of the canned attacks through the counterfactual
+  if (req.method === 'POST' && path.startsWith('/api/demo/')) {
+    const id = path.split('/').pop() ?? '';
+    const attack = CANNED_ATTACKS.find((a) => a.id === id);
+    if (!attack) return json(res, 404, { error: `unknown demo '${id}'` });
+    const result = await replayDrainAttack(attack);
+    // log a summary into the audit ledger so it shows on the feed
+    result.steps.forEach((s) => {
+      if (s.decision) ledger.append(s.decision);
+    });
+    return json(res, 200, { attack: result.attack, contained: result.contained, steps: result.steps, loopsStopped: result.loopsStopped, notionalSaved: result.notionalSaved, traceId: result.traceId });
+  }
+
+  // POST /api/robinhood  {agentId, order, agenticAccount}  -> gate a Robinhood MCP order
+  if (req.method === 'POST' && path === '/api/robinhood') {
+    const body = await readBody(req);
+    const agentId = String(body.agentId ?? defaultAgent.agentId);
+    const order = body.order as RobinhoodOrder;
+    const gate: RobinhoodAccountGate = { allowedAgenticAccount: String(body.agenticAccount ?? 'acct-AGENTIC') };
+    if (!order || !order.kind || !order.notionalUsd) {
+      return json(res, 400, { error: 'order {kind, notionalUsd, symbol, agenticAccount} required' });
+    }
+    const decision = await guardRobinhoodOrder(engine, agentId, order, gate, defaultAgent as never);
+    ledger.append(decision);
+    return json(res, 200, { decision, gated: decision.verdict });
   }
 
   // POST /api/decide  {agentId, kind, payload}
