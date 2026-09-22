@@ -76,4 +76,12 @@ describe('AuditLedger (node:sqlite hash chain)', () => {
     expect(evt.receiptId).toBe('tx:0xabc');
     l.close();
   });
+
+  it('records the decision kind directly (fix: no more derived "unknown")', () => {
+    const l = new AuditLedger(':memory:');
+    const d = { ...decision('deny'), kind: 'robinhood_order' };
+    const evt = l.append(d);
+    expect(evt.kind).toBe('robinhood_order');
+    l.close();
+  });
 });

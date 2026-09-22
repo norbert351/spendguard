@@ -81,7 +81,7 @@ export class AuditLedger {
       ts: now,
       agentId: decision.agentId,
       actionId: decision.actionId,
-      kind: this.kindFor(decision.actionId) ?? 'unknown',
+      kind: decision.kind ?? 'unknown',
       verdict: decision.verdict,
       reasonCode: decision.reason.code,
       detail: decision.reason.detail,
@@ -101,13 +101,6 @@ export class AuditLedger {
       .run(evt.ts, evt.agentId, evt.actionId, evt.kind, evt.verdict, evt.reasonCode, evt.detail, evt.hash, evt.prevHash, receiptId ?? null);
 
     return evt;
-  }
-
-  private kindFor(actionId: string): string | null {
-    const row = this.db
-      .prepare('SELECT kind FROM audit_events WHERE action_id = ? ORDER BY seq DESC LIMIT 1')
-      .get(actionId) as { kind: string } | undefined;
-    return row?.kind ?? null;
   }
 
   count(): number {

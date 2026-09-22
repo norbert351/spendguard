@@ -17,6 +17,10 @@ export const SpendPolicy = z.object({
   allowedKinds: z.array(z.enum(['transfer','robinhood_order','x402_payment','ixs_deposit','contract_call'])).default([]),
   /** Require a human to approve actions above this amount. */
   humanInLoopThreshold: z.string().regex(/^\d+(\.\d+)?$/).optional(),
+  /** Max number of funding actions allowed inside windowMs (velocity guard). */
+  maxActionsPerWindow: z.number().int().positive().optional(),
+  /** Emergency freeze — when true, ALL funding actions are denied. */
+  frozen: z.boolean().optional(),
 });
 
 export type SpendPolicy = z.infer<typeof SpendPolicy>;

@@ -123,6 +123,7 @@ export async function guardRobinhoodOrder(
   order: RobinhoodOrder,
   gate: RobinhoodAccountGate,
   policy: AgentPolicy,
+  window: { spent: string; windowStart: number; count?: number } = { spent: '0', windowStart: 0 },
 ): Promise<Decision> {
   // Account-boundary defence first (the `agentic_allowed` ambiguity).
   if (order.agenticAccount !== gate.allowedAgenticAccount) {
@@ -130,14 +131,15 @@ export async function guardRobinhoodOrder(
       decisionId: randomUUID(),
       actionId: randomUUID(),
       agentId,
+      kind: 'robinhood_order',
       verdict: 'deny',
-      reason: { code: 'payee_not_allowed', detail: `agent_aimed_non_agentic_account=${order.agenticAccount} (allowed=${gate.allowedAgenticAccount})` },
+      reason: { code: 'account_boundary_breach', detail: `agent_aimed_non_agentic_account=${order.agenticAccount} (allowed=${gate.allowedAgenticAccount})` },
       decidedAt: new Date().toISOString(),
       nonce: 'rh-acct',
     };
   }
   const intent = toRobinhoodOrderIntent(agentId, order, gate);
-  const window = { spent: '0', windowStart: 0 };
+  // Pass the caller's real window so freeze / velocity / window-cap apply.
   return engine.decide(intent, policy, window, Date.now());
 }
 

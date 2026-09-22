@@ -25,6 +25,8 @@ export interface WindowState {
   spent: string;
   /** ms epoch the current window started. */
   windowStart: number;
+  /** count of funding actions in the current window (velocity guard). */
+  count?: number;
 }
 
 /**
@@ -45,6 +47,7 @@ export class DecisionEngine {
       decisionId: rid,
       actionId: intent.id,
       agentId: intent.agentId,
+      kind: intent.kind,
       decidedAt: new Date(now).toISOString(),
       nonce: `${now}-${rid.slice(0, 8)}`,
     };
@@ -62,6 +65,22 @@ export class DecisionEngine {
 
     const binding = this.normalizer.extractBinding(intent);
     const sp = policy.spend;
+
+    // 1.5 emergency freeze — deny ALL funding actions.
+    if (sp.frozen === true) {
+      return this.deny(base, { code: 'frozen', detail: 'agent policy is frozen; no funding actions allowed until unfrozen' });
+    }
+
+    // 1.6 velocity guard — cap funding actions per window.
+    if (sp.maxActionsPerWindow !== undefined && sp.windowMs !== undefined && window) {
+      const count = window.count ?? 0;
+      if (count >= sp.maxActionsPerWindow) {
+        return this.deny(base, {
+          code: 'rate_limited',
+          detail: `window already used ${count} funding actions (cap ${sp.maxActionsPerWindow})`,
+        });
+      }
+    }
 
     // 2. payee whitelist
     const allowedPayees = sp.allowedPayees ?? [];

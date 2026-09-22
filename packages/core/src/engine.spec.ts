@@ -115,4 +115,52 @@ describe('DecisionEngine — every guard', () => {
     expect(d.verdict).toBe('allow');
     expect(d.reason.code).toBe('ok');
   });
+
+  it('DENIES ALL funding actions when the policy is frozen', async () => {
+    const p = policy({ allowedPayees: ['0xA'], frozen: true });
+    const d = await eng.decide(
+      intent({ payload: { to: '0xA', amount: '10.00', chainId: 1, token: 'USDC' } }),
+      p,
+      { spent: '0', windowStart: 0 },
+      1000,
+    );
+    expect(d.verdict).toBe('deny');
+    expect(d.reason.code).toBe('frozen');
+  });
+
+  it('velocity guard denies once window action count hits the cap', async () => {
+    const p = policy({ allowedPayees: ['0xA'], maxAmountPerWindow: '500.00', windowMs: 86400000, maxActionsPerWindow: 2 });
+    const w = { spent: '40.00', count: 2, windowStart: 1000 };
+    const d = await eng.decide(
+      intent({ payload: { to: '0xA', amount: '10.00', chainId: 1, token: 'USDC' } }),
+      p,
+      w,
+      5000,
+    );
+    expect(d.verdict).toBe('deny');
+    expect(d.reason.code).toBe('rate_limited');
+  });
+
+  it('velocity guard allows when under the action cap', async () => {
+    const p = policy({ allowedPayees: ['0xA'], maxAmountPerWindow: '500.00', windowMs: 86400000, maxActionsPerWindow: 3 });
+    const w = { spent: '40.00', count: 1, windowStart: 1000 };
+    const d = await eng.decide(
+      intent({ payload: { to: '0xA', amount: '10.00', chainId: 1, token: 'USDC' } }),
+      p,
+      w,
+      5000,
+    );
+    expect(d.verdict).toBe('allow');
+  });
+
+  it('records the action kind on the decision (audit ledger fix)', async () => {
+    const p = policy({ allowedPayees: ['0xA'] });
+    const d = await eng.decide(
+      intent({ kind: 'robinhood_order', payload: { to: '0xA', amount: '10.00', chainId: 1, token: 'USDC' } }),
+      p,
+      { spent: '0', windowStart: 0 },
+      1000,
+    );
+    expect(d.kind).toBe('robinhood_order');
+  });
 });

@@ -23,6 +23,10 @@ export const DecisionReason = z.object({
     'injection_detected',
     'shadow_verify_failed',
     'human_required',
+    'account_boundary_breach',
+    'frozen',
+    'rate_limited',
+    'validation_error',
   ]),
   detail: z.string(),
 });
@@ -34,6 +38,8 @@ export const Decision = z.object({
   decisionId: z.string().uuid(),
   actionId: z.string(),
   agentId: z.string(),
+  /** action kind, so the audit ledger can record it directly. */
+  kind: z.string().optional(),
   verdict: DecisionVerdict,
   reason: DecisionReason,
   /** The approved binding (when allow / require_human). NOT set on deny. */

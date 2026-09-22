@@ -50,7 +50,7 @@ describe('Robinhood MCP gating (verified 57-tool surface)', () => {
   it('DENIES a crypto order aimed at a NON-Agentic account (account-boundary defence)', async () => {
     const d = await guardRobinhoodOrder(engine, 'rh-agent', order({ agenticAccount: 'acct-growth' }), gate, policy);
     expect(d.verdict).toBe('deny');
-    expect(d.reason.code).toBe('payee_not_allowed');
+    expect(d.reason.code).toBe('account_boundary_breach');
     expect(d.reason.detail).toContain('agent_aimed_non_agentic_account');
   });
 

@@ -65,21 +65,42 @@
 
 <div class="grid">
   <div class="card" style="grid-column:1/-1">
+    <h2>Policy & controls <span class="tag">per-agent · freeze · HITL approve</span></h2>
+    <div id="policyBox"></div>
+  </div>
+
+  <div class="grid">
+  <div class="card">
+    <h2>Pending HITL approvals</h2>
+    <div id="pendingBox"><div class="tag">none</div></div>
+  </div>
+  <div class="card">
+    <h2>Proof retrieval</h2>
+    <div style="font-size:12px" class="row"><span>Enter an action id</span></div>
+    <input id="proofId" placeholder="paste action id…" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 8px;border-radius:6px;font:inherit;margin:8px 0">
+    <button class="btn ghost" onclick="getProof()">Fetch proof</button>
+    <div id="proofOut" class="tag" style="margin-top:6px">—</div>
+  </div>
+  </div>
+
+  <div class="grid">
+  <div class="card" style="grid-column:1/-1">
     <h2>Audit ledger <span class="tag">append-only · sha-256 hash chain · integrity check below</span></h2>
     <div id="ledger"><div class="tag">loading…</div></div>
   </div>
-</div>
+  </div>
 
 <script>
 async function j(u,o){const r=await fetch(u,o);return r.json();}
+let proofFromActionId;
 async function refreshLedger(){
   const d=await j('/api/ledger');
   const ok=d.integrity.valid;
   const el=document.getElementById('ledger');
-  const rows=(d.events||[]).slice(0,12).map(e=>
-    `<div class="row"><span>${e.kind}</span><span class="${e.verdict==='allow'?'g':e.verdict==='deny'?'r':'w'}">${e.verdict}</span><span>${e.reasonCode}</span><span>${(e.receiptId||'').slice(0,14)||''}</span><span class="meta">${(e.hash||'').slice(0,8)}…</span></div>`
+  const rows=(d.events||[]).slice(0,15).map(e=>
+    `<div class="row"><span>${e.kind}</span><span class="${e.verdict==='allow'?'g':e.verdict==='deny'?'r':'w'}">${e.verdict}</span><span>${e.reasonCode}</span><span>${(e.receiptId||'').slice(0,14)||''}</span><span class="meta">${(e.hash||'').slice(0,8)}…</span><b style="cursor:pointer;color:var(--acc)" data-a="${e.actionId}" onclick="proofFromActionId=this.dataset.a;document.getElementById('proofId').value=this.dataset.a">⛨</b></div>`
   ).join('');
-  el.innerHTML=`<div class="row"><b>integrity</b><span class="${ok?'g':'r'}">${ok?'VALID':'BROKEN'} · ${d.integrity.verified} events</span></div>`+rows;
+  el.innerHTML=`<div class="row"><b>integrity</b><span class="${ok?'g':'r'}">${ok?'VALID':'BROKEN'} · ${d.integrity.verified} events</span></div><div class="row"><b>kind</b><span>recorded on every event (fix: no more 'unknown')</span></div>`+rows;
 }
 async function runDemo(id){
   const out=document.getElementById('demoResult');
@@ -87,7 +108,6 @@ async function runDemo(id){
   out.textContent='replaying…'; l.innerHTML='';
   const d=await j('/api/demo/'+id,{method:'POST'});
   out.innerHTML=`<b class="${d.contained?'g':'r'}">${d.contained?'CONTAINED' : 'NOT CONTAINED'}</b> · $${parseFloat(d.notionalSaved||0).toLocaleString()} saved · ${d.loopsStopped} loop-burns stopped`;
-  const layers=['injection-screen','decision-engine','x402-binder'];
   l.innerHTML=d.steps.map(s=>{
     const cls=s.outcome==='blocked'?'r':s.outcome==='allowed'?'w':'g';
     return `<div class="layer"><b style="color:var(--${cls})">${s.layer}</b> · <span class="${cls}">${s.outcome}</span><div class="meta">${s.detail}</div></div>`;
@@ -96,22 +116,46 @@ async function runDemo(id){
 }
 async function rhOrder(allowed){
   const body={
-    agentId:'demo-trader',
+    agentId:'rh-agent',
     agenticAccount: allowed ? document.getElementById('rhAcct').value : 'acct-growth',
-    order:{
-      kind:'crypto', side:'buy', symbol:document.getElementById('rhSym').value,
-      notionalUsd:document.getElementById('rhNot').value,
-      agenticAccount: allowed ? document.getElementById('rhAcct').value : 'acct-growth',
-    }
+    order:{kind:'crypto', side:'buy', symbol:document.getElementById('rhSym').value, notionalUsd:document.getElementById('rhNot').value, agenticAccount: allowed ? document.getElementById('rhAcct').value : 'acct-growth'}
   };
   const d=await j('/api/robinhood',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
   const dv=d.decision;
-  document.getElementById('rhOut').innerHTML=
-    `<b class="${dv.verdict==='allow'?'g':dv.verdict==='deny'?'r':'w'}">${dv.verdict}</b> · ${dv.reason.code} — ${dv.reason.detail}`;
-  refreshLedger();
+  document.getElementById('rhOut').innerHTML=`<b class="${dv.verdict==='allow'?'g':dv.verdict==='deny'?'r':'w'}">${dv.verdict}</b> · ${dv.reason.code} — ${dv.reason.detail}`;
+  refreshLedger(); refreshPending();
 }
-refreshLedger();
-setInterval(refreshLedger,5000);
+async function refreshPolicy(){
+  const d=await j('/api/policy');
+  const box=document.getElementById('policyBox');
+  box.innerHTML=(d.agents||[]).map(a=>{
+    const s=a.spend||{}; const frozen=s.frozen;
+    return `<div class="row"><b>${a.agentId}</b><span>cap $${s.maxAmountPerAction} · HITL &gt;$${s.humanInLoopThreshold} · ${s.maxActionsPerWindow} actions/window</span>
+      <span class="${frozen?'r':'g'}">${frozen?'FROZEN':'active'}</span>
+      <button class="btn ghost" onclick="toggleFreeze('${a.agentId}', ${!frozen})">${frozen?'unfreeze':'freeze'}</button></div>`;
+  }).join('');
+}
+async function toggleFreeze(id,val){
+  await j('/api/policy/'+id+(val?'/freeze':'/unfreeze'),{method:'POST'});
+  refreshPolicy(); refreshLedger();
+}
+async function refreshPending(){
+  const d=await j('/api/pending');
+  const box=document.getElementById('pendingBox');
+  const p=d.pending||[];
+  box.innerHTML=p.length? p.map(x=>`<div class="row"><span class="w">HITL</span><span>$${x.approvedBinding?.amount} ${x.kind}</span><span class="meta">${x.decisionId.slice(0,8)}</span><button class="btn ghost" onclick="approve('${x.decisionId}')">approve</button></div>`).join('') : '<div class="tag">none pending</div>';
+}
+async function approve(id){
+  await j('/api/approve',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({decisionId:id,guardian:'0xGuardian'})});
+  refreshPending(); refreshLedger();
+}
+async function getProof(){
+  const id=document.getElementById('proofId').value;
+  const d=await j('/api/proof/'+id);
+  document.getElementById('proofOut').innerHTML=`<div class="code">${JSON.stringify(d.proof,null,1)}</div>`;
+}
+refreshLedger(); refreshPolicy(); refreshPending();
+setInterval(()=>{refreshLedger(); refreshPending();},5000);
 </script>
 </body>
 </html>
