@@ -134,6 +134,27 @@ spendguard/
 - **`apps/api/public/index.html`** — live UI: demo triggers, per-layer outcome cards, Robinhood order gate, append-only ledger feed w/ hash-chain integrity badge.
 - **Tests:** `phase2.spec.ts` (11) — Robinhood gating (57/9 counts, account-boundary deny, cap deny, HITL, enumeration) + all 3 drain attacks contained. **39/39 suite total.**
 
+## ✅ EVERY feature + 8 bug fixes (commit 2e92cbe, pushed 2026-09-22 — 44/44 tests)
+### Features from PLAN.md now all live
+- **Multi-agent policy registry** + management: `GET/POST /api/policy(/:id)` (per-agent spend config)
+- **Emergency freeze/unfreeze kill-switch**: `POST /api/policy/:id/{freeze,unfreeze}` (auditable to ledger)
+- **HITL approval completion**: `GET /api/pending` + `POST /api/approve {decisionId, guardian}` — resolves require_human → allow, audited
+- **Velocity guard**: `maxActionsPerWindow` enforced (12th RH action → `rate_limited`) — engine + real window state
+- **Proof retrieval**: `GET /api/proof/:actionId` (signed proof artifact + audit anchor)
+- Spend caps + window caps + payee/kind whitelists now enforced through **real per-agent window state** (no longer bypassed)
+
+### 8 bugs fixed
+1. Ledger recorded `kind='unknown'` on first event → **Decision now carries `kind`**
+2. Robinhood account-boundary denial used wrong reason code → **`account_boundary_breach`**
+3. Freeze route shadowed by generic policy upsert (route-order bug) → **reordered**
+4. `guardRobinhoodOrder` passed a hardcoded `{}` window → **freeze/velocity/window-cap BYPASSED for RH orders**; now accepts the real window
+5. Malformed JSON body threw → `readBody` swallows safely
+6. Missing CORS → **added permissive CORS + OPTIONS preflight** (judge-embeddable)
+7–8. Window accounting returned mismatched types → unified `WindowRec`
+
+### Live-verified (smoke test)
+freeze→deny·unfreeze→allow · HITL require_human→approve→allow · velocity 12th→rate_limited (cap 10) · proof by actionId · ledger kinds real (robinhood_order, not unknown)
+
 ### Live-verified (smoke test on :8181)
 - `POST /api/demo/bill-swap` → **contained, saved $5,900**
 - `POST /api/demo/overnight-loop` → **contained, 120 loop-burns stopped**
