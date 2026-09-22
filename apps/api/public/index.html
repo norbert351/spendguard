@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="robots" content="noindex" />
+<meta name="robots" content="index,follow" />
 <title>SpendGuard — Agent Trust Guardian</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,41 +19,30 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
   body{
-    /* gradient covers the FULL body height (no background-attachment:fixed,
-       which only painted the viewport and left lower sections white) */
     background:radial-gradient(150% 120% at 20% 0%, var(--bg1) 0%, var(--bg0) 42%, var(--bg0) 100%);
-    color:var(--txt); font-family:var(--sans); line-height:1.6; -webkit-font-smoothing:antialiased;
-    min-height:100vh;
+    color:var(--txt); font-family:var(--sans); line-height:1.6; -webkit-font-smoothing:antialiased; min-height:100vh;
   }
 
-  /* ---------- NAV ---------- */
   nav{display:flex;align-items:center;justify-content:space-between;padding:26px 4vw;position:relative;z-index:50}
-  .brand{font-size:1.05rem;font-weight:700;letter-spacing:.5em;text-transform:uppercase}
+  .brand{font-size:1.05rem;font-weight:700;letter-spacing:.5em;text-transform:uppercase;text-decoration:none;color:var(--txt)}
   .nav-links{display:flex;gap:34px;font-size:.86rem;color:var(--mut)}
   .nav-links a{color:inherit;text-decoration:none;transition:.2s}
   .nav-links a:hover{color:var(--amber)}
   .nav-cta{display:flex;align-items:center;gap:16px}
-  .socials{display:flex;gap:12px}
-  .socials svg{width:15px;height:15px;fill:var(--mut);transition:.2s}
-  .socials a:hover svg{fill:var(--amber)}
   .btn-pill{border:1px solid rgba(246,241,234,.55);color:var(--txt);padding:10px 22px;border-radius:999px;text-decoration:none;font-size:.84rem;transition:.25s}
   .btn-pill:hover{border-color:var(--amber);color:var(--amber)}
   .btn-amber{background:var(--amber);color:var(--ink);padding:14px 30px;border-radius:999px;text-decoration:none;font-weight:600;font-size:.9rem;display:inline-flex;align-items:center;gap:10px;box-shadow:0 10px 34px var(--glow);transition:.25s;border:none;cursor:pointer}
   .btn-amber:hover{background:var(--amber2);transform:translateY(-2px)}
 
-  /* ---------- HERO ---------- */
   .hero{position:relative;padding:2vh 4vw 6vh;display:grid;grid-template-columns:1.15fr 1fr;gap:2vw;align-items:center;max-width:1400px;margin:0 auto;min-height:88vh}
   .hero-copy h1{font-family:var(--serif);font-weight:600;font-size:clamp(2.6rem,5.4vw,4.9rem);line-height:1.02;letter-spacing:-.01em}
   .hero-copy h1 em{font-style:normal;color:var(--amber)}
-  .hero-copy h1 .amber{color:var(--amber)}
   .hero-copy .lead{margin-top:1.6rem;color:var(--mut);font-size:1.02rem;max-width:44ch}
   .hero-media{position:relative;display:flex;justify-content:center;align-items:flex-end}
   .hero-media .portrait{width:min(100%,440px);border-radius:8px;filter:contrast(1.05) saturate(1.05);display:block;box-shadow:0 -40px 90px rgba(255,122,26,.22)}
   .overlay-text{position:absolute;bottom:6%;right:0;text-align:right}
   .overlay-text .big{font-family:var(--serif);font-weight:600;font-size:clamp(1.8rem,3.2vw,2.9rem);line-height:1;color:var(--txt);text-transform:uppercase;letter-spacing:.01em}
   .overlay-text .btn-amber{margin-top:.8rem}
-
-  /* floating cards */
   .floatcard{position:absolute;border-radius:12px;padding:16px 18px;box-shadow:0 24px 60px rgba(0,0,0,.5);max-width:210px}
   .fc-orange{background:var(--amber);color:var(--ink);top:8%;left:-4%}
   .fc-orange .t{font-weight:700;font-size:.8rem;letter-spacing:.08em}
@@ -62,7 +51,6 @@
   .fc-ghost{top:auto;bottom:30%;left:-10%;background:rgba(246,241,234,.07);border:1px solid var(--line);backdrop-filter:blur(8px);color:var(--txt)}
   .floatcard .sub{font-size:.7rem;color:inherit;opacity:.75;margin-top:.3rem;line-height:1.4}
 
-  /* ---------- PHILOSOPHY ---------- */
   .philosophy{max-width:1400px;margin:0 auto;padding:10vh 4vw;display:grid;grid-template-columns:1fr 2.2fr 1fr;gap:3vw;align-items:center;border-top:1px solid var(--line)}
   .section-tag{font-size:.8rem;letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
   .philosophy h2{font-family:var(--serif);font-weight:600;font-size:clamp(1.6rem,2.6vw,2.4rem);line-height:1.15}
@@ -76,53 +64,13 @@
   .fc-zero .t{font-weight:700;font-size:.78rem;letter-spacing:.06em}
   .fc-zero .sub{font-size:.7rem;opacity:.75;margin-top:.3rem;line-height:1.4}
 
-  /* ---------- PRODUCT / CONTROL PLANE ---------- */
-  .product{max-width:1400px;margin:0 auto;padding:4vh 4vw 10vh}
-  .product-head{display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid var(--line);padding-top:3vh}
-  .product-head h2{font-family:var(--serif);font-weight:600;font-size:clamp(1.8rem,3vw,2.6rem)}
-  .product-head h2 em{font-style:normal;color:var(--amber)}
-  .product-head span{color:var(--dim);font-size:.8rem;letter-spacing:.2em;text-transform:uppercase}
-  .statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:3vh 0}
-  .stat{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:14px;padding:18px}
-  .stat .k{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
-  .stat .v{font-size:1.5rem;font-weight:700;margin-top:.3rem;font-family:var(--sans);color:var(--amber2)}
-  .glass{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px;backdrop-filter:blur(6px)}
-  .glass h3{font-family:var(--serif);font-size:1.2rem;font-weight:600;color:var(--txt);margin-bottom:14px;letter-spacing:.01em}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .btn{background:rgba(255,122,26,.12);border:1px solid rgba(255,122,26,.4);color:var(--amber2);padding:9px 16px;border-radius:9px;font:inherit;font-size:.78rem;cursor:pointer;transition:.2s;margin:0 8px 8px 0}
-  .btn:hover{background:rgba(255,122,26,.25)}
-  .btn.ghost{background:transparent;border-color:var(--line);color:var(--mut)}
-  .btn.ghost:hover{border-color:var(--amber);color:var(--amber2)}
-  .row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.84rem}
-  .row:last-child{border-bottom:none}
-  .row .lbl{flex:1;color:var(--mut)}
-  .row .val{font-family:var(--sans);font-size:.78rem;padding:2px 9px;border-radius:6px;flex:none}
-  .g{color:#7ce0a0;background:rgba(124,224,160,.12)}
-  .r{color:#ff8a8a;background:rgba(255,138,138,.12)}
-  .w{color:#ffc27a;background:rgba(255,122,26,.14)}
-  .frozen{color:#ff8a8a;background:rgba(255,138,138,.14)}
-  .layer{display:flex;gap:12px;padding:11px 0;align-items:flex-start;border-top:1px dashed var(--line);font-size:.82rem}
-  .layer:first-of-type{border-top:none}
-  .layer .dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex:none}
-  .dot.block{background:#ff7a7a;box-shadow:0 0 10px #ff7a7a}
-  .dot.ok{background:#79dba0}.dot.skip{background:var(--dim)}
-  .layer .ln{font-family:var(--sans);font-size:.74rem;color:var(--amber2);min-width:128px}
-  .layer .det{color:var(--mut);font-size:.8rem;word-break:break-word}
-  .pill{font-family:var(--sans);font-size:.66rem;letter-spacing:.04em;padding:2px 9px;border-radius:6px}
-  .pill.ok{background:rgba(124,224,160,.14);color:#9ee9ba}
-  .pill.block{background:rgba(255,138,138,.14);color:#ffa8a8}
-  .pill.sk{background:rgba(138,124,104,.2);color:var(--dim)}
-  .meta{color:var(--dim);font-size:.74rem}
-  .code{font-family:var(--sans);font-size:.74rem;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;color:#e8d9c2}
+  .cta-band{max-width:1400px;margin:0 auto;padding:8vh 4vw;text-align:center;border-top:1px solid var(--line)}
+  .cta-band h2{font-family:var(--serif);font-weight:600;font-size:clamp(1.8rem,3vw,2.6rem);margin-bottom:1.2rem}
+  .cta-band h2 em{font-style:normal;color:var(--amber)}
 
-  input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--txt);padding:9px 12px;border-radius:9px;font:inherit;font-size:.82rem}
-  label{font-size:.7rem;color:var(--dim);display:block;margin-bottom:5px;letter-spacing:.1em;text-transform:uppercase}
-
-  /* ---------- FOOTER ---------- */
   footer{border-top:1px solid var(--line);padding:5vh 4vw;display:flex;justify-content:space-between;align-items:center;color:var(--dim);font-size:.8rem;flex-wrap:wrap;gap:14px}
   footer .big{font-family:var(--serif);font-size:1.6rem;color:var(--txt);font-weight:600}
   footer .big span{color:var(--amber)}
-  .code-note{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;padding:14px;font-family:var(--sans);font-size:.74rem;color:#d8c9ae;line-height:1.9;overflow-x:auto}
 
   @media(max-width:820px){
     nav{padding:18px 5vw}
@@ -136,50 +84,36 @@
     .floatcard{max-width:150px;padding:10px 12px}
     .fc-orange{left:-2%} .fc-white{right:-2%} .fc-ghost{left:-2%}
     .philosophy{grid-template-columns:1fr;gap:2rem;padding:7vh 5vw}
-    .grid2{grid-template-columns:1fr}
-    .statrow{grid-template-columns:1fr 1fr 1fr}
-    .product-head{flex-direction:column;gap:6px}
   }
 </style>
 </head>
 <body>
 
-<!-- ============ NAV ============ -->
 <nav>
-  <div class="brand">SPEND<span style="color:var(--amber)">GUARD</span></div>
+  <a class="brand" href="./">SPEND<span style="color:var(--amber)">GUARD</span></a>
   <div class="nav-links">
-    <a href="#product">Control Plane</a>
-    <a href="#demo">Counterfactual</a>
-    <a href="#ledger">Audit Ledger</a>
+    <a href="#philosophy">Approach</a>
+    <a href="./app">Control Plane</a>
   </div>
-  <div class="nav-cta">
-    <div class="socials">
-      <a href="#"><svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12c0 5 3.7 9.1 8.5 9.8v-7H8v-2.8h2.5V9.9c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.2c-1.2 0-1.6.8-1.6 1.6v1.9h2.8l-.4 2.8h-2.4v7C18.3 21.1 22 17 22 12c0-5.5-4.5-10-10-10z"/></svg></a>
-      <a href="#"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.2.1 1.7.1 4.9s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.2.1-1.7.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.7 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.3 2.2 8.8 2.2 12 2.2zm0 3.3a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zm0 10.7a4.2 4.2 0 1 1 0-8.4 4.2 4.2 0 0 1 0 8.4zm6.5-11a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/></svg></a>
-      <a href="#"><svg viewBox="0 0 24 24"><path d="M12 2c1.1 0 2 .9 2 2v2h5.4c1.4 0 2.6 1.2 2.6 2.6v10.8c0 1.4-1.2 2.6-2.6 2.6H4.6C3.2 22 2 20.8 2 19.4V8.6C2 7.2 3.2 6 4.6 6H10V4c0-1.1.9-2 2-2z"/></svg></a>
-    </div>
-    <a class="btn-pill" href="#demo">Contact Us</a>
-  </div>
+  <div class="nav-cta"><a class="btn-pill" href="./app">Open Control Plane</a></div>
 </nav>
 
-<!-- ============ HERO ============ -->
 <section class="hero">
   <div class="hero-copy">
     <h1>Trust That <em>Reveals</em> The True Essence Of Your <em>Agent Economy.</em></h1>
     <p class="lead">SpendGuard is the pre-execution guardrail + audited control plane that stops AI agents from draining wallets — before they sign. Decide. Shadow-verify. Bind. Audit.</p>
+    <div style="margin-top:2rem"><a class="btn-amber" href="./app">Open the Control Plane →</a></div>
   </div>
   <div class="hero-media">
     <img class="portrait" src="portrait.png" alt="Agent trust guardian">
     <div class="overlay-text">
       <div class="big">agent<br>trust</div>
-      <a class="btn-amber" href="#demo">Run the Counterfactual →</a>
     </div>
     <div class="floatcard fc-orange"><div class="t">DIGITAL<br>SECURITY & GUARDRAILS</div><div class="sub">verify → bind → sign</div></div>
     <div class="floatcard fc-white" style="top:34%"><div class="t">FULL-CYCLE</div><div class="sub">decide · bind · audit</div></div>
   </div>
 </section>
 
-<!-- ============ PHILOSOPHY ============ -->
 <section class="philosophy" id="philosophy">
   <div class="section-tag">01 / philosophy</div>
   <div>
@@ -193,141 +127,15 @@
   </div>
 </section>
 
-<!-- ============ PRODUCT / CONTROL PLANE ============ -->
-<section class="product" id="product">
-  <div class="product-head">
-    <h2>The <em>Control Plane</em></h2>
-    <span>guard on · audit always</span>
-  </div>
-
-  <div class="statrow">
-    <div class="stat"><div class="k">Ledger events</div><div class="v" id="statEvents">–</div></div>
-    <div class="stat"><div class="k">Chain integrity</div><div class="v" id="statIntegrity">–</div></div>
-    <div class="stat"><div class="k">Attacks saved</div><div class="v" id="statSaved">–</div></div>
-  </div>
-
-  <!-- DEMO -->
-  <div class="glass" id="demo">
-    <h3>Replay the counterfactual — remove the rail, the drain returns</h3>
-    <div style="margin-bottom:8px">
-      <button class="btn" onclick="runDemo('bill-swap')">Bill-swap retry (#1404)</button>
-      <button class="btn" onclick="runDemo('exfil-ignore-prev')">"ignore previous" exfil</button>
-      <button class="btn" onclick="runDemo('overnight-loop')">Overnight loop ($600 bill)</button>
-    </div>
-    <div id="demoResult" class="meta" style="margin:6px 0">Pick an attack to replay it through the three guard layers.</div>
-    <div id="layers"></div>
-  </div>
-
-  <!-- ROBINHOOD GATE -->
-  <div class="glass">
-    <h3>Gate a Robinhood MCP order</h3>
-    <div class="grid2">
-      <div><label>Symbol</label><input id="rhSym" value="BTCUSD"></div>
-      <div><label>Notional USD</label><input id="rhNot" value="250.00"></div>
-    </div>
-    <div class="grid2">
-      <div><label>Agentic account</label><input id="rhAcct" value="acct-AGENTIC"></div>
-      <div style="display:flex;align-items:flex-end;gap:8px;padding-top:22px">
-        <button class="btn" onclick="rhOrder(true)">Allowed account</button>
-        <button class="btn ghost" onclick="rhOrder(false)">Wrong account</button>
-      </div>
-    </div>
-    <div id="rhOut" class="meta" style="margin-top:10px">—</div>
-  </div>
-
-  <!-- POLICY & CONTROLS -->
-  <div class="glass" style="margin-top:16px">
-    <h3>Policy & controls</h3>
-    <div id="policyBox"></div>
-  </div>
-
-  <div class="grid2" style="margin-top:16px">
-    <div class="glass">
-      <h3>Pending HITL approvals</h3>
-      <div id="pendingBox"><span class="meta">none</span></div>
-    </div>
-    <div class="glass">
-      <h3>Proof retrieval</h3>
-      <label>Action id</label>
-      <input id="proofId" placeholder="paste action id…">
-      <button class="btn ghost" style="margin-top:8px" onclick="getProof()">Fetch proof</button>
-      <div id="proofOut" class="meta" style="margin-top:10px">—</div>
-    </div>
-  </div>
-
-  <!-- LEDGER -->
-  <div class="glass" id="ledger" style="margin-top:16px">
-    <h3>Audit ledger — append-only · sha-256 chain</h3>
-    <div id="ledgerRows"></div>
-  </div>
+<section class="cta-band">
+  <h2>See it stop a <em>real</em> drain.</h2>
+  <a class="btn-amber" href="./app">Launch the Counterfactual →</a>
 </section>
 
-<!-- ============ FOOTER ============ -->
 <footer>
   <div class="big">SPEND<span>GUARD</span></div>
   <div class="meta">verify → bind → sign → audit · the trust unit is the policy, not the payment</div>
 </footer>
 
-<script>
-async function j(u,o){const r=await fetch(u,o);return r.json();}
-
-async function refreshLedger(){
-  const d=await j("./api/ledger');
-  document.getElementById('statEvents').textContent=d.events.length;
-  document.getElementById('statIntegrity').textContent=d.integrity.valid?'✓':'✗';
-  const el=document.getElementById('ledgerRows');
-  const rows=(d.events||[]).slice(0,16).map(e=>{
-    const cls=e.verdict==='allow'?'g':e.verdict==='deny'?'r':'w';
-    return `<div class="row"><span class="lbl">${e.kind} · <b style="cursor:pointer;color:var(--amber2)" data-a="${e.actionId}" onclick="document.getElementById('proofId').value=this.dataset.a">${e.actionId.slice(0,8)}</b></span><span class="val ${cls}">${e.verdict}</span><span class="val">${e.reasonCode}</span><span class="meta">${(e.receiptId||'').slice(0,14)||''}</span></div>`;
-  }).join('');
-  el.innerHTML=`<div class="row"><span class="lbl">chain integrity</span><span class="val ${d.integrity.valid?'g':'r'}">${d.integrity.valid?`VALID · ${d.integrity.verified} events`:'BROKEN'}</span></div>`+rows;
-}
-
-async function runDemo(id){
-  document.getElementById('demoResult').textContent='replaying…';
-  const l=document.getElementById('layers'); l.innerHTML='';
-  const d=await j("./api/demo/'+id,{method:'POST'});
-  document.getElementById('statSaved').textContent='$'+parseFloat(d.notionalSaved||0).toLocaleString();
-  document.getElementById('demoResult').innerHTML=`<b class="${d.contained?'g':'r'}">${d.contained?'CONTAINED':'NOT CONTAINED'}</b> · $${parseFloat(d.notionalSaved||0).toLocaleString()} saved · ${d.loopsStopped} loop-burns stopped · <span class="meta">trace ${d.traceId}</span>`;
-  l.innerHTML=d.steps.map(s=>{
-    const cls=s.outcome==='blocked'?'block':s.outcome==='allowed'?'ok':'skip';
-    const lb=s.outcome==='blocked'?'BLOCKED':s.outcome==='allowed'?'ALLOWED':'SKIPPED';
-    return `<div class="layer"><div class="dot ${cls}"></div><div class="ln">${s.layer}</div><div class="det"><span class="pill ${cls}">${lb}</span>&nbsp; ${s.detail}</div></div>`;
-  }).join('')+`<div class="layer"><div class="dot skip"></div><div class="ln">trace</div><div class="det meta">${d.traceId}</div></div>`;
-  refreshLedger(); refreshPending();
-}
-
-async function rhOrder(allowed){
-  const body={agentId:'rh-agent',agenticAccount:allowed?document.getElementById('rhAcct').value:'acct-growth',order:{kind:'crypto',side:'buy',symbol:document.getElementById('rhSym').value,notionalUsd:document.getElementById('rhNot').value,agenticAccount:allowed?document.getElementById('rhAcct').value:'acct-growth'}};
-  const d=await j("./api/robinhood',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-  const dv=d.decision;
-  const cls=dv.verdict==='allow'?'g':dv.verdict==='deny'?'r':'w';
-  document.getElementById('rhOut').innerHTML=`<span class="val ${cls}">${dv.verdict}</span> <span class="meta">${dv.reason.code} — ${dv.reason.detail}</span>`;
-  refreshLedger(); refreshPending();
-}
-
-async function refreshPolicy(){
-  const d=await j("./api/policy');
-  document.getElementById('policyBox').innerHTML=(d.agents||[]).map(a=>{
-    const s=a.spend||{}; const fr=s.frozen;
-    return `<div class="row"><span class="lbl"><b>${a.agentId}</b> · cap $${s.maxAmountPerAction} · HITL &gt;$${s.humanInLoopThreshold} · ${s.maxActionsPerWindow} actions/window</span><span class="val ${fr?'frozen':'g'}">${fr?'FROZEN':'active'}</span><button class="btn ghost" onclick="toggleFreeze('${a.agentId}',${!fr})">${fr?'unfreeze':'freeze'}</button></div>`;
-  }).join('');
-}
-async function toggleFreeze(id,val){await j("./api/policy/'+id+(val?'/freeze':'/unfreeze'),{method:'POST'});refreshPolicy();refreshLedger();}
-
-async function refreshPending(){
-  const d=await j("./api/pending'); const p=d.pending||[];
-  document.getElementById('pendingBox').innerHTML=p.length?p.map(x=>`<div class="row"><span class="lbl"><span class="val w">HITL</span> $${x.approvedBinding?.amount} ${x.kind}</span><span class="meta">${x.decisionId.slice(0,8)}</span><button class="btn ghost" onclick="approve('${x.decisionId}')">approve</button></div>`).join(''):'<span class="meta">none pending</span>';
-}
-async function approve(id){await j("./api/approve',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({decisionId:id,guardian:'0xGuardian'})});refreshPending();refreshLedger();}
-
-async function getProof(){
-  const d=await j("./api/proof/'+document.getElementById('proofId').value);
-  document.getElementById('proofOut').innerHTML=`<div class="code">${JSON.stringify(d.proof,null,1)}</div>`;
-}
-
-refreshLedger(); refreshPolicy(); refreshPending();
-setInterval(()=>{refreshLedger();refreshPending();},5000);
-</script>
 </body>
 </html>

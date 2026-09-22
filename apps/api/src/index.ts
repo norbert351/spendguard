@@ -232,9 +232,9 @@ const server = createServer(async (req, res) => {
     return json(res, 200, { proof });
   }
 
-  // ---- GET /  or static asset  -> UI ----
-  if (req.method === 'GET' && (path === '/' || path === '/index.html' || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg'))) {
-    const asset = path === '/' || path === '/index.html' ? undefined : path.split('/').pop();
+  // ---- GET / , /app, or static asset -> UI ----
+  if (req.method === 'GET' && (path === '/' || path === '/index.html' || path === '/app' || path === '/app.html' || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg'))) {
+    const asset = path === '/app' || path === '/app.html' ? 'app.html' : (path === '/' || path === '/index.html' ? undefined : path.split('/').pop());
     return serveUI(res, asset);
   }
 
