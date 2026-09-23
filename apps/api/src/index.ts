@@ -4,8 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { DecisionEngine, defaultPaymentNormalizer, addAmounts, type WindowState } from '@spendguard/core';
 import { AuditLedger } from '@spendguard/ledger';
 import { ServClient } from '@spendguard/serv';
-import { bindToApproved, replayDrainAttack, CANNED_ATTACKS, guardRobinhoodOrder, type RobinhoodOrder, type RobinhoodAccountGate } from '@spendguard/adapters';
+import { bindToApproved, replayDrainAttack, CANNED_ATTACKS, guardRobinhoodOrder, toIxsDepositIntent, type RobinhoodOrder, type RobinhoodAccountGate, type IxsDeposit } from '@spendguard/adapters';
 import type { AgentPolicy, ActionIntent, PaymentBinding, SignableBundle, Decision } from '@spendguard/contracts';
+import { validateFundingPayload, explorerHashUrl, explorerAddressUrl } from '@spendguard/contracts';
 
 /**
  * SpendGuard API — a zero-dependency node:http backend that wires the full
@@ -37,20 +38,26 @@ function authorized(req: IncomingMessage): boolean {
 
 // ---- Persistent multi-agent policy registry (seeded into sqlite on boot) ----
 function defaultPolicy(agentId: string): AgentPolicy {
+  const isRh = agentId === 'rh-agent';
+  const isYield = agentId === 'yield-agent';
   return {
     agentId,
     spend: {
       maxAmountPerAction: '1000.00',
-      maxAmountPerWindow: agentId === 'rh-agent' ? '5000.00' : '2500.00',
+      maxAmountPerWindow: isRh ? '5000.00' : '2500.00',
       windowMs: 86400000,
-      maxActionsPerWindow: agentId === 'rh-agent' ? 10 : 5,
-      allowedPayees: agentId === 'rh-agent' ? ['robinhood:equity', 'robinhood:option', 'robinhood:crypto'] : ['0xMerchant', 'robinhood:equity', 'robinhood:option', 'robinhood:crypto'],
-      allowedKinds: agentId === 'rh-agent' ? ['robinhood_order'] : ['transfer', 'x402_payment', 'robinhood_order'],
-      humanInLoopThreshold: agentId === 'rh-agent' ? '500.00' : '100.00',
+      maxActionsPerWindow: isRh ? 10 : 5,
+      allowedPayees: isRh
+        ? ['robinhood:equity', 'robinhood:option', 'robinhood:crypto']
+        : isYield
+          ? ['ixs:0xagentic-vault', 'ixs:0xvault'] // RWA track — licensed IXS vault payees
+          : ['0xMerchant', 'robinhood:equity', 'robinhood:option', 'robinhood:crypto'],
+      allowedKinds: isRh ? ['robinhood_order'] : isYield ? ['ixs_deposit'] : ['transfer', 'x402_payment', 'robinhood_order'],
+      humanInLoopThreshold: isRh ? '500.00' : '100.00',
       frozen: false,
     },
-    guardianAddress: agentId === 'rh-agent' ? '0xGuardianRH' : '0xGuardian',
-    note: agentId === 'rh-agent' ? 'Robinhood MCP trading agent' : 'SERV hackathon demo policy',
+    guardianAddress: isRh ? '0xGuardianRH' : isYield ? '0xGuardianYield' : '0xGuardian',
+    note: isRh ? 'Robinhood MCP trading agent' : isYield ? 'RWA yield agent (IXS vault deposits)' : 'SERV hackathon demo policy',
   };
 }
 const policies = new Map<string, AgentPolicy>();
@@ -60,7 +67,7 @@ function loadPoliciesFromDisk(): void {
     try { policies.set(id, JSON.parse(json) as AgentPolicy); } catch { /* skip corrupt */ }
   }
   // seed defaults for known agents if absent
-  for (const id of ['demo-trader', 'rh-agent']) {
+  for (const id of ['demo-trader', 'rh-agent', 'yield-agent']) {
     if (!policies.has(id)) {
       const p = defaultPolicy(id);
       policies.set(id, p);
@@ -87,10 +94,23 @@ function getWindow(agentId: string, now: number): { state: WindowRec; policy: Ag
 }
 function persistWindow(agentId: string, w: WindowRec): void { ledger.saveWindow(agentId, w.spent, w.count, w.windowStart); }
 
-// ---- Pending HITL approvals ----
+// ---- Pending HITL approvals — PERSISTED so approvals survive restart ----
 const pendingHITL = new Map<string, Decision>();
 function recordPending(d: Decision): void {
-  if (d.verdict === 'require_human') pendingHITL.set(d.decisionId, d);
+  if (d.verdict === 'require_human') {
+    pendingHITL.set(d.decisionId, d);
+    ledger.savePending(d.decisionId, JSON.stringify(d));
+  }
+}
+function loadPendingFromDisk(): void {
+  for (const [k, v] of Object.entries(ledger.loadPending())) {
+    try { const d = JSON.parse(v) as Decision; pendingHITL.set(d.decisionId, d); } catch { /* skip */ }
+  }
+}
+loadPendingFromDisk();
+function dropPending(id: string): void {
+  pendingHITL.delete(id);
+  ledger.deletePending(id);
 }
 
 function json(res: ServerResponse, code: number, body: unknown): void {
@@ -218,7 +238,7 @@ const server = createServer(async (req, res) => {
     const id = String(body.decisionId ?? '');
     const pending = pendingHITL.get(id);
     if (!pending) return json(res, 404, { error: `no pending HITL decision '${id}'` });
-    pendingHITL.delete(id);
+    dropPending(id);
     const approved: Decision = { ...pending, verdict: 'allow', reason: { code: 'ok', detail: `human-approved by ${String(body.guardian ?? '0xGuardian')}` } };
     const w = getWindow(pending.agentId, Date.now());
     if (approved.approvedBinding) {
@@ -248,6 +268,8 @@ const server = createServer(async (req, res) => {
       approved: {},
       signedAt: evt.ts,
       receiptId: evt.receiptId ?? null,
+      explorerUrl: explorerHashUrl(1, evt.hash), // default chain; chain-specific when known
+      payeeUrl: evt.receiptId ? explorerAddressUrl(1, evt.receiptId) : undefined,
     };
     return json(res, 200, { proof });
   }
@@ -292,19 +314,32 @@ const server = createServer(async (req, res) => {
 
   // ---- POST /api/agent/action — the REAL service seam an agent calls ----
   // Body: { agentId, kind, intent: { to, amount, chainId, token }, signPayload? }
-  // Runs the full rail: decide -> serv verify -> bind -> audit. Returns a
+  // Runs the full rail: schema-force -> decide -> serv verify -> bind -> audit. Returns a
   // signed proof when allowed. This is what a live AgentKit/Robinhood/x402
   // agent would call before broadcasting.
   if (req.method === 'POST' && path === '/api/agent/action') {
     const body = await readBody(req);
     const agentId = String(body.agentId ?? 'demo-trader');
+    const kind = String(body.kind ?? 'transfer');
+    const intentPayload = (body.intent ?? {}) as Record<string, unknown>;
+    // #6 schema-forced execution: reject malformed intents outright.
+    const violations = validateFundingPayload(kind, intentPayload);
+    if (violations.length > 0) {
+      const schemaDeny: Decision = {
+        decisionId: randomUUID(), actionId: randomUUID(), agentId, kind,
+        verdict: 'deny', reason: { code: 'validation_error', detail: `schema violation: ${violations.map((v) => `${v.field}=${v.problem}`).join('; ')}` },
+        decidedAt: new Date().toISOString(), nonce: `schema-${Date.now()}`,
+      };
+      ledger.append(schemaDeny);
+      return json(res, 403, { decision: schemaDeny, proof: ledger.makeProof(schemaDeny), window: getWindow(agentId, Date.now()).state });
+    }
     const policy = policies.get(agentId) ?? policies.get('demo-trader')!;
     const intent = {
       id: randomUUID(),
       agentId,
-      kind: String(body.kind ?? 'transfer'),
+      kind,
       createdAt: new Date().toISOString(),
-      payload: body.intent ?? {},
+      payload: intentPayload,
     } as ActionIntent;
 
     const w = getWindow(intent.agentId, Date.now());
@@ -330,11 +365,43 @@ const server = createServer(async (req, res) => {
       bind = bindToApproved(decision, body.bundle as SignableBundle);
     }
 
+    const proof = ledger.makeProof(decision);
+    const chainId = defaultPaymentNormalizer.extractBinding(intent).chainId;
     return json(res, decision.verdict === 'allow' ? 200 : (decision.verdict === 'require_human' ? 202 : 403), {
       decision,
       bind,
       window: w.state,
-      proof: ledger.makeProof(decision),
+      proof: { ...proof, explorerUrl: explorerHashUrl(chainId, proof.proofHash) },
+    });
+  }
+
+  // ---- POST /api/ixs  {agentId, deposit:{vault,amountUsdc,chainId}} -> gate an RWA deposit ----
+  if (req.method === 'POST' && path === '/api/ixs') {
+    const body = await readBody(req);
+    const agentId = String(body.agentId ?? 'demo-trader');
+    const dep = body.deposit as IxsDeposit;
+    if (!dep || !dep.vault || !dep.amountUsdc) {
+      return json(res, 400, { error: 'deposit {vault, amountUsdc, chainId} required' });
+    }
+    const policy = policies.get(agentId) ?? policies.get('demo-trader')!;
+    const intent = toIxsDepositIntent(agentId, { vault: dep.vault, amountUsdc: dep.amountUsdc, chainId: dep.chainId ?? 8453, strategy: dep.strategy });
+    const w = getWindow(agentId, Date.now());
+    let decision = await engine.decide(intent, policy, w.state, Date.now());
+    if (decision.verdict === 'allow' || decision.verdict === 'require_human') {
+      const binding = defaultPaymentNormalizer.extractBinding(intent);
+      const v = await serv.verify(intent, binding);
+      if (v.code === 'injection') decision = { ...decision, verdict: 'deny', reason: { code: 'injection_detected', detail: v.detail } };
+      else if (v.code === 'shadow_refused') decision = { ...decision, verdict: 'deny', reason: { code: 'shadow_verify_failed', detail: v.detail } };
+    }
+    if (decision.verdict === 'allow' && decision.approvedBinding) {
+      w.state.spent = addAmounts(w.state.spent, decision.approvedBinding.amount);
+      w.state.count += 1;
+      persistWindow(agentId, w.state);
+    }
+    if (decision.verdict === 'require_human') recordPending(decision);
+    ledger.append(decision);
+    return json(res, decision.verdict === 'allow' ? 200 : (decision.verdict === 'require_human' ? 202 : 403), {
+      decision, gated: decision.verdict, window: w.state, proof: ledger.makeProof(decision),
     });
   }
 

@@ -55,6 +55,11 @@ export class AuditLedger {
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS pending (
+        decision_id TEXT PRIMARY KEY,
+        json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
     `);
   }
 
@@ -237,5 +242,20 @@ export class AuditLedger {
   getConfig(key: string): string | null {
     const row = this.db.prepare('SELECT value FROM config WHERE key = ?').get(key) as { value: string } | undefined;
     return row?.value ?? null;
+  }
+
+  savePending(decisionId: string, decisionJson: string): void {
+    this.db.prepare('INSERT INTO pending (decision_id, json, created_at) VALUES (?, ?, ?) ON CONFLICT(decision_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at').run(decisionId, decisionJson, new Date().toISOString());
+  }
+
+  loadPending(): Record<string, string> {
+    const rows = this.db.prepare('SELECT decision_id, json FROM pending').all() as Array<{ decision_id: string; json: string }>;
+    const out: Record<string, string> = {};
+    for (const r of rows) out[r.decision_id] = r.json;
+    return out;
+  }
+
+  deletePending(decisionId: string): void {
+    this.db.prepare('DELETE FROM pending WHERE decision_id = ?').run(decisionId);
   }
 }

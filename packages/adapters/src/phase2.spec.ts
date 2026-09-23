@@ -8,6 +8,7 @@ import {
   toRobinhoodOrderIntent,
   type RobinhoodOrder,
 } from './robinhood.js';
+import { guardAgentKitTransfer, toAgentKitIntent } from './agentkit.js';
 import { replayDrainAttack, CANNED_ATTACKS } from './drain-demo.js';
 import type { AgentPolicy } from '@spendguard/contracts';
 
@@ -110,5 +111,35 @@ describe('Replayable injection-drain demo (counterfactual)', () => {
       expect(r.contained).toBe(true);
       expect(r.notionalSaved !== '0.00' || r.loopsStopped > 0).toBe(true);
     }
+  });
+});
+describe('AgentKit guard + schema-forced execution', () => {
+  const akPolicy = {
+    agentId: 'cdp-wallet',
+    spend: { maxAmountPerAction: '500.00', allowedPayees: ['0xMerchant'], allowedKinds: ['transfer'] as const, humanInLoopThreshold: '100.00' },
+  } as unknown as AgentPolicy;
+
+  it('guardAgentKitTransfer ALLOWS a valid, in-policy transfer', async () => {
+    const d = await guardAgentKitTransfer(engine, 'cdp-wallet', { to: '0xMerchant', amount: '50.00', chainId: 1, token: 'USDC' }, akPolicy);
+    expect(d.verdict).toBe('allow');
+    expect(d.kind).toBe('transfer');
+  });
+
+  it('guardAgentKitTransfer DENIES a malformed intent (schema-forced)', async () => {
+    const d = await guardAgentKitTransfer(engine, 'cdp-wallet', { to: '', amount: 'abc', chainId: 1, token: '' }, akPolicy);
+    expect(d.verdict).toBe('deny');
+    expect(d.reason.code).toBe('validation_error');
+  });
+
+  it('guardAgentKitTransfer DENIES an over-cap transfer', async () => {
+    const d = await guardAgentKitTransfer(engine, 'cdp-wallet', { to: '0xMerchant', amount: '9999.00', chainId: 1, token: 'USDC' }, akPolicy);
+    expect(d.verdict).toBe('deny');
+    expect(d.reason.code).toBe('over_spend_limit');
+  });
+
+  it('toAgentKitIntent always yields kind=transfer with role in payload', () => {
+    const i = toAgentKitIntent('cdp-wallet', { to: '0xY', amount: '10', chainId: 1, token: 'native' }, 'payment');
+    expect(i.kind).toBe('transfer');
+    expect((i.payload as Record<string, unknown>).role).toBe('payment');
   });
 });
