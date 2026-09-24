@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { DecisionEngine, defaultPaymentNormalizer, addAmounts, type WindowState } from '@spendguard/core';
 import { AuditLedger } from '@spendguard/ledger';
 import { ServClient } from '@spendguard/serv';
+import { AuthStore, parseCookies, sessionCookie, clearSessionCookie } from './auth.js';
 import { bindToApproved, replayDrainAttack, CANNED_ATTACKS, guardRobinhoodOrder, toIxsDepositIntent, type RobinhoodOrder, type RobinhoodAccountGate, type IxsDeposit } from '@spendguard/adapters';
 import type { AgentPolicy, ActionIntent, PaymentBinding, SignableBundle, Decision } from '@spendguard/contracts';
 import { validateFundingPayload, explorerHashUrl, explorerAddressUrl } from '@spendguard/contracts';
@@ -23,9 +24,11 @@ import { validateFundingPayload, explorerHashUrl, explorerAddressUrl } from '@sp
 
 const PORT = Number(process.env.SPENDGUARD_PORT ?? 8181);
 const LEDGER_FILE = process.env.SPENDGUARD_LEDGER ?? '/home/ubuntu/spendguard/data/audit.sqlite';
+const AUTH_FILE = process.env.SPENDGUARD_AUTH ?? '/home/ubuntu/spendguard/data/auth.sqlite';
 
 const engine = new DecisionEngine(defaultPaymentNormalizer);
 const ledger = new AuditLedger(LEDGER_FILE);
+const auth = new AuthStore(AUTH_FILE);
 const serv = new ServClient({ mode: (process.env.SERV_MODE as 'local' | 'remote') ?? 'local', endpoint: process.env.SERV_ENDPOINT, apiKey: process.env.SERV_API_KEY });
 
 // ---- API key auth (real service, not an open device) ----
@@ -34,6 +37,12 @@ function authorized(req: IncomingMessage): boolean {
   if (!API_KEY) return true; // no key configured = open (dev mode)
   const h = req.headers['x-api-key'] ?? req.headers['authorization']?.toString().replace(/^Bearer\s+/i, '');
   return h === API_KEY;
+}
+
+/** Resolve the logged-in owner from the HttpOnly session cookie, if any. */
+function getOwner(req: IncomingMessage) {
+  const cookies = parseCookies(req.headers['cookie']);
+  return auth.getSession(cookies['sg_session']);
 }
 
 // ---- Persistent multi-agent policy registry (seeded into sqlite on boot) ----
@@ -165,13 +174,54 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
   if (req.method === 'OPTIONS') return handleOptions(res);
 
-  // ---- auth gate (real service) ----
-  // Public: landing page + control-plane UI shell + static assets (marketing).
-  // Protected: ALL /api/* endpoints — the actual guardrail service an agent has
-  // to authenticate against (x-api-key). The control-plane UI passes ?key= to
-  // its own API calls; without it those calls 401.
-  const isPublic = (req.method === 'GET') && (path === '/' || path === '/index.html' || path === '/app' || path === '/app.html' || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg'));
-  if (!isPublic && !authorized(req)) return json(res, 401, { error: 'unauthorized — provide x-api-key' });
+  // ---- auth: owner email+password session (control plane) OR x-api-key (API) ----
+  const sessionOwner = getOwner(req);
+  const authed = !!sessionOwner || authorized(req);
+  const isPublicAuth = path.startsWith('/api/auth/'); // register/login/logout/me are public (any method)
+  const isPublic =
+    isPublicAuth ||
+    ((req.method === 'GET') &&
+      (path === '/' || path === '/index.html' || path === '/login' || path === '/login.html' ||
+        path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg')));
+  if (path.startsWith('/api/') && !isPublic && !authed) {
+    return json(res, 401, { error: 'unauthorized — log in (email+password) or provide x-api-key' });
+  }
+
+  // ---- auth endpoints (public) ----
+  if (req.method === 'POST' && path === '/api/auth/register') {
+    const b = await readBody(req);
+    const email = String(b.email ?? '');
+    const password = String(b.password ?? '');
+    const r = auth.register(email, password);
+    if ('error' in r) return json(res, 400, { error: r.error });
+    const sess = auth.createSession(r.owner.id);
+    res.writeHead(200, { 'content-type': 'application/json', 'set-cookie': sessionCookie(sess.token) });
+    res.end(JSON.stringify({ ok: true, owner: { id: r.owner.id, email: r.owner.email }, sessionExpiresAt: sess.expiresAt }));
+    return;
+  }
+  if (req.method === 'POST' && path === '/api/auth/login') {
+    const b = await readBody(req);
+    const email = String(b.email ?? '');
+    const password = String(b.password ?? '');
+    const owner = auth.login(email, password);
+    if (!owner) return json(res, 401, { error: 'invalid email or password' });
+    const sess = auth.createSession(owner.id);
+    res.writeHead(200, { 'content-type': 'application/json', 'set-cookie': sessionCookie(sess.token) });
+    res.end(JSON.stringify({ ok: true, owner: { id: owner.id, email: owner.email }, sessionExpiresAt: sess.expiresAt }));
+    return;
+  }
+  if (req.method === 'POST' && path === '/api/auth/logout') {
+    const cookies = parseCookies(req.headers['cookie']);
+    auth.deleteSession(cookies['sg_session']);
+    res.writeHead(200, { 'content-type': 'application/json', 'set-cookie': clearSessionCookie() });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+  if (req.method === 'GET' && path === '/api/auth/me') {
+    const owner = getOwner(req);
+    if (!owner) return json(res, 401, { error: 'not logged in' });
+    return json(res, 200, { owner: { id: owner.id, email: owner.email } });
+  }
 
   if (req.method === 'GET' && path === '/api/health') {
     return json(res, 200, { status: 'ok', ledger: ledger.count(), service: 'spendguard', agents: [...policies.keys()] });
@@ -275,8 +325,12 @@ const server = createServer(async (req, res) => {
   }
 
   // ---- GET / , /app, or static asset -> UI ----
-  if (req.method === 'GET' && (path === '/' || path === '/index.html' || path === '/app' || path === '/app.html' || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg'))) {
-    const asset = path === '/app' || path === '/app.html' ? 'app.html' : (path === '/' || path === '/index.html' ? undefined : path.split('/').pop());
+  if (req.method === 'GET' && (path === '/' || path === '/index.html' || path === '/app' || path === '/app.html' || path === '/login' || path === '/login.html' || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg'))) {
+    let asset;
+    if (path === '/app' || path === '/app.html') asset = authed ? 'app.html' : 'login.html';
+    else if (path === '/login' || path === '/login.html') asset = 'login.html';
+    else if (path === '/' || path === '/index.html') asset = undefined;
+    else asset = path.split('/').pop();
     return serveUI(res, asset);
   }
 

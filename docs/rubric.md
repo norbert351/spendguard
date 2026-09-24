@@ -12,7 +12,7 @@ Reasoning and surprises us") · closes Sep 28 00:00 UTC.
 | Axis | Where the evidence is (one click) | Depth |
 |---|---|---|
 | **Creativity** | **Bill-swap binder** (`packages/adapters/src/x402-binder.ts`; live `POST /api/demo/bill-swap` → `contained:true`, `x402-binder: amount_mismatch: approved 5.00 != presented 5900.00`, `notionalSaved 5900.00`) · **SERV shadow-verify** (`packages/serv/src/serv-client.ts`) · immutable consider/did/declined ledger (`packages/ledger`, `GET /api/ledger`) | Mechanism, not a fence: the "trust unit is the policy" framing |
-| **User-readiness** | **Live demo** http://129.226.83.2/sg/app (multi-agent policy registry, freeze, HITL pending queue, replayable attacks, ledger with proof hashes + explorer links). 58/58 tests (`npm test`). Rail-agnostic (AgentKit/Robinhood MCP/x402/IXS). | Real, authenticated, persistent service — not a mock |
+| **User-readiness** | **Live demo** http://129.226.83.2/sg/app — **owner email+password login** (register/login/logout, HttpOnly `sg_session` cookie, `/app` gated) + multi-agent policy registry, freeze, HITL pending queue, replayable attacks, ledger with proof hashes + explorer links. **60/60 tests** (`npm test`). Rail-agnostic (AgentKit/Robinhood MCP/x402/IXS). | Real, authenticated, persistent service — not a mock |
 | **Revenue potential** | SaaS guardrail for funded-agent teams: per-fleet/per-agent licensing + enterprise immutable-audit/compliance tier (the artifact enterprises pay for). See `docs/SUBMISSION.md §Revenue`. | Credible line; no overclaim |
 | **Leverages SERV Reasoning** (ALL tracks) | `serv.verify()` called in every money-decision path — `apps/api/src/index.ts` `/api/agent/action` (:350), `/api/ixs` (:392), `/api/decide` (:425) — verdict `shadow_refused`/`injection` **denies** the action. **Live in remote SERV mode** (`serv=remote` in the boot log). Every decision carries `shadow: {engine:'serv', code, traceId}`. | Load-bearing — removing SERV removes the drain screen |
 
@@ -36,7 +36,7 @@ Reasoning and surprises us") · closes Sep 28 00:00 UTC.
 ## What to run right before the demo video / submission
 
 ```bash
-npm test                          # 58/58
+npm test                          # 60/60
 curl -s -X POST -H "x-api-key: <key>" \
   -H "Content-Type: application/json" \
   http://129.226.83.2/sg/api/decide \

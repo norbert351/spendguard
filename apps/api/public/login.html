@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SpendGuard — Sign in</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #121212; color: #eee; font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; }
+  .card { background: #1d1d1d; border: 1px solid #333; border-radius: 14px; padding: 28px; width: 100%; max-width: 360px; }
+  h1 { font-size: 20px; letter-spacing: .4px; }
+  .shield { font-size: 34px; margin-bottom: 8px; }
+  label { display: block; font-size: 13px; color: #999; margin: 14px 0 6px; }
+  input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #444; background: #252525; color: #eee; font-size: 15px; }
+  button { width: 100%; margin-top: 16px; padding: 12px; border: 0; border-radius: 9px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  #btnLogin { background: #e0a52c; color: #1d1405; }
+  #btnRegister { background: #333; color: #eee; border: 1px solid #555; }
+  .error { color: #ff6b6b; font-size: 13px; min-height: 18px; margin-top: 8px; }
+  .switch { font-size: 13px; color: #888; text-align: center; margin-top: 12px; }
+  .switch a { color: #e0a52c; cursor: pointer; }
+  .hint { color: #666; font-size: 12px; text-align: center; margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="shield">🛡️</div>
+    <h1>SpendGuard</h1>
+    <p style="color:#999;font-size:13px;margin-top:4px;">Agent trust guardian — sign in to your fleet</p>
+    <div id="registerForm">
+      <label>Email</label><input id="regEmail" type="email" autocomplete="email" placeholder="you@fleet.com" />
+      <label>Password <span style="color:#666">(min 8)</span></label><input id="regPass" type="password" autocomplete="new-password" />
+      <button id="btnRegister">Create account & sign in</button>
+      <div class="switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+    </div>
+    <div id="loginForm" style="display:none">
+      <label>Email</label><input id="logEmail" type="email" autocomplete="email" placeholder="you@fleet.com" />
+      <label>Password</label><input id="logPass" type="password" autocomplete="current-password" />
+      <button id="btnLogin">Sign in</button>
+      <div class="switch">No account? <a onclick="showRegister()">Create one</a></div>
+    </div>
+    <div class="error" id="err"></div>
+  </div>
+  <div class="hint">Your fleet and its immutable audit trail live under this account.<br/>This is the control plane — a shared URI key is no longer needed.</div>
+
+<script>
+  const err = (m) => (document.getElementById('err').textContent = m || '');
+  function showLogin(){ document.getElementById('registerForm').style.display='none'; document.getElementById('loginForm').style.display='block'; err(''); }
+  function showRegister(){ document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='block'; err(''); }
+  async function call(url, body){
+    const r = await fetch(url, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error || ('HTTP '+r.status));
+    return d;
+  }
+  document.getElementById('btnRegister').onclick = async () => {
+    err('');
+    try {
+      await call('/api/auth/register', { email: regEmail.value, password: regPass.value });
+      location.href = '/app';
+    } catch(e){ err(e.message); }
+  };
+  document.getElementById('btnLogin').onclick = async () => {
+    err('');
+    try {
+      await call('/api/auth/login', { email: logEmail.value, password: logPass.value });
+      location.href = '/app';
+    } catch(e){ err(e.message); }
+  };
+  // already signed in?
+  fetch('/api/auth/me').then(r => { if (r.ok) location.href='/app'; }).catch(()=>{});
+</script>
+</body>
+</html>

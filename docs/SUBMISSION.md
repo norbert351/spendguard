@@ -49,7 +49,7 @@ entry.
 - **Concept (one-liner):** A pre-execution guardrail + immutable audit ledger that stops AI agents from draining wallets — before they sign — with SERV Reasoning shadow-verification, per-agent spend policies, HITL, freeze, and a signed append-only receipt trail.
 - **How it leverages SERV Reasoning:** Every money action is shadow-verified by SERV before signing (`serv.verify` in `/api/agent/action`, `/api/ixs`, `/api/decide`); SERV performs the injection screen + approved-binding re-check whose verdict can deny the action; the verdict + SERV traceId are written to the audit ledger. Removing SERV removes the drain screen.
 - **Creativity:** The "trust unit is the policy, not the payment" framing + the bill-swap binder (the #1404 fix) + immutable considered/did/declined ledger — security that survives prompt injection rather than relying on the agent being well-behaved.
-- **User-readiness:** Live at http://129.226.83.2/sg/app — real multi-agent policy registry, freeze/HITL/pending queue, replayable counterfactual attacks, immutable ledger, explorer links. 58/58 tests. Rail-agnostic.
+- **User-readiness:** Live at http://129.226.83.2/sg/app — real multi-agent policy registry, freeze/HITL/pending queue, replayable counterfactual attacks, immutable ledger, explorer links. 60/60 tests. Rail-agnostic.
 - **Revenue potential (be concrete):** SaaS guardrail for agent teams — per-fleet licensing (per-agent/per-month), enterprise tier for the immutable compliance ledger + auditor export (a compliance artifact enterprises pay for), and a usage tier on signed payloads / HITL approvals. Target: the funded-agent + agentic-wallet operators that markets (MetaMask Agent Wallet, Virtuals, Binance BAOS) are growing.
 - **Links:** GitHub https://github.com/norbert351/spendguard · Live demo http://129.226.83.2/sg/app · X post (this one)
 
@@ -60,7 +60,7 @@ entry.
 | Axis | Evidence in the build |
 |---|---|
 | **Creativity** | Bill-swap binder (#1404), SERV shadow-verify, immutable consider/did/declined SHA-256 chain — the "policy is the trust unit" angle, not a wallet UI |
-| **User-readiness** | Live demo, real multi-agent policies, freeze/HITL, replayable attacks, 58/58 tests, ledger with explorer links, environment-oriented (MIT, one-command deploy) |
+| **User-readiness** | Live demo, real multi-agent policies, freeze/HITL, replayable attacks, 60/60 tests, ledger with explorer links, environment-oriented (MIT, one-command deploy) |
 | **Revenue potential** | SaaS guardrail licensing + paid immutable-audit/compliance tier — the thing enterprises pay for |
 
 ---
@@ -95,7 +95,7 @@ cd apps/api && SERV_MODE=remote \
 ---
 
 ## F. Honest ✅/⚠️/❌ matrix (from the audit)
-- ✅ 58/58 tests · typecheck clean · live deploy (/sg/, /sg/app 200) · SERV load-bearing in code · x402-binder · immutable ledger · docs set · repo pushed
+- ✅ 60/60 tests · typecheck clean · live deploy (/sg/, /sg/app 200) · SERV load-bearing in code · x402-binder · immutable ledger · docs set · repo pushed
 - ⚠️ SERV runs **local** until you set `SERV_MODE=remote` + key (config now documented correctly)
 - ⚠️ Coinbase AgentKit SDK not integrated → Open Track recommended (or wire it for AgentKit track)
 - ⚠️ Submission still needs the **X post + typeform + demo video** (this pack)

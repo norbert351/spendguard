@@ -174,14 +174,22 @@
 </footer>
 
 <script>
-// API key support: ?key=<SPENDGUARD_API_KEY> lets the control plane call the guarded service.
+// Session login (email+password) authenticates the control plane; ?key= is a
+// legacy fallback for API clients. Same-origin fetch sends the sg_session cookie
+// automatically, so no header is needed when signed in.
 const APIKEY = new URLSearchParams(window.location.search).get("key") || "";
+function logout(){ fetch('./api/auth/logout',{method:'POST'}).then(()=>location.href='/login'); }
 async function j(u,o){
   const o2={...(o||{})};
   o2.headers={...(o2.headers||{})};
   if(APIKEY) o2.headers["x-api-key"]=APIKEY;
-  try{const r=await fetch(u,o2); if(r.status===401) throw new Error("unauthorized — append ?key=<API_KEY>"); return await r.json();}catch(e){throw e;}
+  try{const r=await fetch(u,o2); if(r.status===401) throw new Error("unauthorized — sign in or append ?key=<API_KEY>"); return await r.json();}catch(e){throw e;}
 }
+// show the signed-in owner; redirect to login if not authed
+fetch('./api/auth/me').then(r=>{
+  if(!r.ok){ location.href='/login'; return; }
+  r.json().then(d=>{ const el=document.getElementById('ownerEmail'); if(el) el.textContent='· '+d.owner.email; });
+}).catch(()=>location.href='/login');
 
 async function refreshLedger(){
   const d=await j("./api/ledger");
