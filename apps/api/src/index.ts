@@ -348,8 +348,9 @@ const server = createServer(async (req, res) => {
     if (decision.verdict === 'allow' || decision.verdict === 'require_human') {
       const binding = defaultPaymentNormalizer.extractBinding(intent);
       const v = await serv.verify(intent, binding);
-      if (v.code === 'injection') decision = { ...decision, verdict: 'deny', reason: { code: 'injection_detected', detail: v.detail } };
-      else if (v.code === 'shadow_refused') decision = { ...decision, verdict: 'deny', reason: { code: 'shadow_verify_failed', detail: v.detail } };
+      if (v.code === 'injection') decision = { ...decision, verdict: 'deny', reason: { code: 'injection_detected', detail: v.detail }, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
+      else if (v.code === 'shadow_refused') decision = { ...decision, verdict: 'deny', reason: { code: 'shadow_verify_failed', detail: v.detail }, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
+      else decision = { ...decision, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
     }
     if (decision.verdict === 'allow' && decision.approvedBinding) {
       w.state.spent = addAmounts(w.state.spent, decision.approvedBinding.amount);
@@ -390,8 +391,9 @@ const server = createServer(async (req, res) => {
     if (decision.verdict === 'allow' || decision.verdict === 'require_human') {
       const binding = defaultPaymentNormalizer.extractBinding(intent);
       const v = await serv.verify(intent, binding);
-      if (v.code === 'injection') decision = { ...decision, verdict: 'deny', reason: { code: 'injection_detected', detail: v.detail } };
-      else if (v.code === 'shadow_refused') decision = { ...decision, verdict: 'deny', reason: { code: 'shadow_verify_failed', detail: v.detail } };
+      if (v.code === 'injection') decision = { ...decision, verdict: 'deny', reason: { code: 'injection_detected', detail: v.detail }, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
+      else if (v.code === 'shadow_refused') decision = { ...decision, verdict: 'deny', reason: { code: 'shadow_verify_failed', detail: v.detail }, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
+      else decision = { ...decision, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
     }
     if (decision.verdict === 'allow' && decision.approvedBinding) {
       w.state.spent = addAmounts(w.state.spent, decision.approvedBinding.amount);
@@ -423,8 +425,9 @@ const server = createServer(async (req, res) => {
     if (decision.verdict === 'allow' || decision.verdict === 'require_human') {
       const binding = defaultPaymentNormalizer.extractBinding(intent);
       const v = await serv.verify(intent, binding);
-      if (v.code === 'injection') decision = { ...decision, verdict: 'deny', reason: { code: 'injection_detected', detail: v.detail } };
-      else if (v.code === 'shadow_refused') decision = { ...decision, verdict: 'deny', reason: { code: 'shadow_verify_failed', detail: v.detail } };
+      if (v.code === 'injection') decision = { ...decision, verdict: 'deny', reason: { code: 'injection_detected', detail: v.detail }, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
+      else if (v.code === 'shadow_refused') decision = { ...decision, verdict: 'deny', reason: { code: 'shadow_verify_failed', detail: v.detail }, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
+      else decision = { ...decision, shadow: { engine: 'serv', code: v.code, traceId: v.traceId } };
     }
     if (decision.verdict === 'allow' && decision.approvedBinding) {
       w.state.spent = addAmounts(w.state.spent, decision.approvedBinding.amount);

@@ -44,6 +44,14 @@ export const Decision = z.object({
   reason: DecisionReason,
   /** The approved binding (when allow / require_human). NOT set on deny. */
   approvedBinding: z.custom<PaymentBinding>().optional(),
+  /** SERV Reasoning shadow-verification provenance, when it ran. */
+  shadow: z
+    .object({
+      engine: z.literal('serv'),
+      code: z.enum(['ok', 'injection', 'shadow_refused']),
+      traceId: z.string(),
+    })
+    .optional(),
   decidedAt: z.string().datetime(),
   /** recomputed hash input (what the proof binds). */
   nonce: z.string(),

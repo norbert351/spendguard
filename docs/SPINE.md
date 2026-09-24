@@ -2,7 +2,7 @@
 
 - **Event:** OpenServ 1st SERV Hackathon · **submissions close Sep 28 00:00 UTC**. Submission = public X post (name/concept/images/links, tag @openservai) + typeform.
 - **Judged axis (verbatim from openserv.ai/hackathon):** "Projects are judged on three things: **creativity, user-readiness, and revenue potential.**" (Plus: must *leverage SERV Reasoning* in one of the four tracks.)
-- **Track (recommended):** **Open Track** — "Anything that runs on SERV Reasoning and surprises us." Rationale below in `docs/SUBMISSION.md`; the build is a rail-agnostic guardrail whose load-bearing mechanism is SERV shadow-verification + the immutable audit ledger.
+- **Track (LOCKED 2026-09-24):** **Open Track** — "Anything that runs on SERV Reasoning and surprises us." Rail-agnostic guardrail; the build's load-bearing mechanism is SERV shadow-verification + the immutable audit ledger. NOT the AgentKit track (the `@coinbase/agentkit` SDK is not in the build — entering AgentKit would be a thin claim).
 
 ## The one line the app is FOR
 The pre-execution guardrail must be the thing that turns a "dangerous agent" into a "board-approved agent" — **and the SERV-shadow-verify + x402-bind mechanism must be the code that proves it, by stopping a real drain on the live demo.**

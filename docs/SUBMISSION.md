@@ -6,13 +6,16 @@
 
 ---
 
-## Track decision (read this first)
+## Track decision — **LOCKED: Open Track**
 
-**Recommendation: enter the Open Track** ("Anything that runs on SERV Reasoning that surprises us").
+**Enter the Open Track** ("Anything that runs on SERV Reasoning and surprises us"), decided 2026-09-24.
 
-Why NOT AgentKit track: the "AgentKit" claim is currently thin — SpendGuard has its own `agentkit.js` adapter, **not** the `@coinbase/agentkit` SDK. Claiming the AgentKit track without the actual SDK is the exact decorative-integration risk that loses these. The build's real centerpiece is the **SERV shadow-verify + x402-bind + audit ledger**, which is precisely what the Open Track rewards.
-
-**Gating:** IF you can wire real Coinbase AgentKit before Sep 28 (add `@coinbase/agentkit`, guard a live CDP wallet via `guardAgentKitTransfer`), then the AgentKit track is fair game and arguably worth more. Otherwise **Open Track** is the honest, stronger enter. Everything below is written for the Open Track; the post/form read nearly identically either way.
+The build's real centerpiece is **SERV shadow-verify + x402-bind + audit ledger**, which is
+exactly what the Open Track rewards. The "AgentKit" track is **not** entered: SpendGuard has
+its own `agentkit.js` adapter but **not** the `@coinbase/agentkit` SDK — claiming the
+AgentKit track without the SDK would be a thin, decorative integration claim. Rail-agnostic
+(AgentKit / Robinhood MCP / x402 / IXS) is a strength *within* Open Track, not an AgentKit
+entry.
 
 ---
 
