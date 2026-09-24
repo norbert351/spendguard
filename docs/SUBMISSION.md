@@ -76,12 +76,18 @@ Why NOT AgentKit track: the "AgentKit" claim is currently thin — SpendGuard ha
 ```bash
 cd ~/spendguard && npm run build -w @spendguard/api && \
 cd apps/api && SERV_MODE=remote \
-  SERV_ENDPOINT=https://api.openserv.ai/v1 \
+  SERV_ENDPOINT=https://inference-api.openserv.ai/v1 \
   SERV_API_KEY=<YOUR_KEY> \
   SPENDGUARD_PORT=8181 SPENDGUARD_API_KEY=<your key> \
   node --dns-result-order=ipv4first dist/index.js
 ```
-Then hit a decision path and confirm the ledger records a **SERV verdict + traceId** (not the local path). You get $5 from the hackathon to pay for these calls.
+> ✅ **Verified live (2026-09-24):** remote SERV Reasoning is wired and running
+> (`serv=remote` in the boot log). A real bill-swap verify against SERV returned
+> `passed:false, code:'shadow_refused'`; a clean in-policy decide returned
+> `allow` with `traceHint: serv:5.00`. The client now sends a required system
+> prompt, uses a real SERV catalog model (`gpt-5.4-mini` default) and the
+> `inference-api.openserv.ai/v1` endpoint by default — no code changes needed,
+> just the key.
 
 ---
 
