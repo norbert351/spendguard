@@ -11,7 +11,7 @@ The pre-execution guardrail must be the thing that turns a "dangerous agent" int
 It is NOT a policy/audit dashboard bolted onto generic rails. It is NOT a Coinbase-AgentKit wallet app (we do not ship the @coinbase/agentkit SDK — see track note). It is the guardrail mechanism itself.
 
 ## Proof bar (artifact that proves it runs)
-On the live demo (`http://129.226.83.2/sg/app`), a replayable counterfactual (`POST /api/demo/:id`, `CANNED_ATTACKS`) shows the guardrail **deny** a bill-swap / injection-drain, with the SERV verdict + x402 binder + an append-only ledger row (`GET /api/ledger`) as signed proof. Counterfactual-of-record: remove the guardrail → the drain returns.
+On the live demo (`https://spendguard.afterhourequity.xyz/app`), a replayable counterfactual (`POST /api/demo/:id`, `CANNED_ATTACKS`) shows the guardrail **deny** a bill-swap / injection-drain, with the SERV verdict + x402 binder + an append-only ledger row (`GET /api/ledger`) as signed proof. Counterfactual-of-record: remove the guardrail → the drain returns.
 
 ## Load-bearing sponsor integration (grep-able)
 - `serv.verify(intent, binding)` called in **every** money-decision path — `apps/api/src/index.ts` `/api/agent/action`, `/api/ixs`, `/api/decide`. Its `shadow_refused`/`injection` verdict **denies** the action. Removing it removes the shadow-drain screen.

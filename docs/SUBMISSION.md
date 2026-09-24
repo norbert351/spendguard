@@ -34,7 +34,7 @@ entry.
 >
 > Counterfactual demo (real, replayable on the live app): a $5 approve → attacker swaps to $5,900 / a different payee → **refused**. A prompt-injection drain → **refused, logged**.
 >
-> Live demo: http://129.226.83.2/sg/app · Code (MIT): https://github.com/norbert351/spendguard
+> Live demo: https://spendguard.afterhourequity.xyz/app · Code (MIT): https://github.com/norbert351/spendguard
 > [add screenshots: guardrail deny card + immutable ledger rows + inject test]
 >
 > #SERVHackathon #agents #safety #openserv
@@ -49,9 +49,9 @@ entry.
 - **Concept (one-liner):** A pre-execution guardrail + immutable audit ledger that stops AI agents from draining wallets — before they sign — with SERV Reasoning shadow-verification, per-agent spend policies, HITL, freeze, and a signed append-only receipt trail.
 - **How it leverages SERV Reasoning:** Every money action is shadow-verified by SERV before signing (`serv.verify` in `/api/agent/action`, `/api/ixs`, `/api/decide`); SERV performs the injection screen + approved-binding re-check whose verdict can deny the action; the verdict + SERV traceId are written to the audit ledger. Removing SERV removes the drain screen.
 - **Creativity:** The "trust unit is the policy, not the payment" framing + the bill-swap binder (the #1404 fix) + immutable considered/did/declined ledger — security that survives prompt injection rather than relying on the agent being well-behaved.
-- **User-readiness:** Live at http://129.226.83.2/sg/app — real multi-agent policy registry, freeze/HITL/pending queue, replayable counterfactual attacks, immutable ledger, explorer links. 60/60 tests. Rail-agnostic.
+- **User-readiness:** Live at https://spendguard.afterhourequity.xyz/app — real multi-agent policy registry, freeze/HITL/pending queue, replayable counterfactual attacks, immutable ledger, explorer links. 60/60 tests. Rail-agnostic.
 - **Revenue potential (be concrete):** SaaS guardrail for agent teams — per-fleet licensing (per-agent/per-month), enterprise tier for the immutable compliance ledger + auditor export (a compliance artifact enterprises pay for), and a usage tier on signed payloads / HITL approvals. Target: the funded-agent + agentic-wallet operators that markets (MetaMask Agent Wallet, Virtuals, Binance BAOS) are growing.
-- **Links:** GitHub https://github.com/norbert351/spendguard · Live demo http://129.226.83.2/sg/app · X post (this one)
+- **Links:** GitHub https://github.com/norbert351/spendguard · Live demo https://spendguard.afterhourequity.xyz/app · X post (this one)
 
 ---
 
