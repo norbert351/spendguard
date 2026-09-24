@@ -1,0 +1,25 @@
+# SpendGuard — Render blueprint. Connect this repo in Render and it auto-deploys.
+services:
+  - type: web
+    name: spendguard
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node apps/api/dist/index.js
+    healthCheckPath: /api/health
+    # Persistent disk so the append-only audit ledger survives redeploys.
+    disk:
+      name: spendguard-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: SPENDGUARD_PORT
+        value: "10000"
+      - key: SPENDGUARD_LEDGER
+        value: /var/data/audit.sqlite
+      - key: SPENDGUARD_API_KEY
+        sync: false
+      - key: SPENDGUARD_SERV_MODE
+        value: local

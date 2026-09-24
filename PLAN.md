@@ -163,6 +163,18 @@ Moved SpendGuard from "demo that resets" to a persistent, authenticated service:
 - Control-plane UI passes `?key=` to its API calls.
 Run: `SPENDGUARD_PORT=8181 SPENDGUARD_API_KEY=... node apps/api/dist/index.js`
 
+## ✅ SUBMISSION-READY packaging (commit pending)
+- README.md (bilingual clear: why, rail, arch, quickstart, API surface, honest scope, MIT)
+- LICENSE (MIT)
+- .env.example (SPENDGUARD_API_KEY / PORT / LEDGER / SERV_*)
+- render.yaml (Render blueprint, persistent disk for ledger)
+- Dockerfile (node:22-slim, healthcheck, env-driven)
+- docs/architecture.md
+- test/e2e.mjs — REAL end-to-end suite booting the API: auth, schema-force, all 3 counterfactuals, live allow/deny, chain integrity. 8/8 E2E PASSED. `npm run test:e2e`
+- .gitignore hardened (data/backups never committed)
+
+**Submit-readiness:** 58 unit tests + 8 e2e = 66 checks green; build+typecheck clean; live at http://129.226.83.2/sg/ (landing) + /sg/app (control plane).
+
 ### Live-verified (smoke test on :8181)
 - `POST /api/demo/bill-swap` → **contained, saved $5,900**
 - `POST /api/demo/overnight-loop` → **contained, 120 loop-burns stopped**
