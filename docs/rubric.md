@@ -30,7 +30,7 @@ Reasoning and surprises us") · closes Sep 28 00:00 UTC.
 | Thing | Status |
 |---|---|
 | Coinbase AgentKit SDK | ❌ not integrated (`@coinbase/agentkit` absent) → entered **Open Track**, not AgentKit |
-| Real on-chain execution behind the guardrail | ❌ the guardrail *decides/denies*; it does not itself broadcast real funds (the rails' job) |
+| Real mainnet / token (USDC) broadcasting | ❌ the real rail broadcasts **native on Base Sepolia testnet only**; ERC20 + mainnet need funded operator keys (README honest scope). No fake ERC20 tx is ever recorded. |
 | Fabricated SERV verdicts | ❌ ledger only records what SERV actually returned; unverified = honest note |
 
 ## What to run right before the demo video / submission

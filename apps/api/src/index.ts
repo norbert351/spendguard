@@ -8,6 +8,7 @@ import { AuthStore, parseCookies, sessionCookie, clearSessionCookie } from './au
 import { bindToApproved, replayDrainAttack, CANNED_ATTACKS, guardRobinhoodOrder, toIxsDepositIntent, type RobinhoodOrder, type RobinhoodAccountGate, type IxsDeposit } from '@spendguard/adapters';
 import type { AgentPolicy, ActionIntent, PaymentBinding, SignableBundle, Decision } from '@spendguard/contracts';
 import { validateFundingPayload, explorerHashUrl, explorerAddressUrl } from '@spendguard/contracts';
+import { broadcastBoundTransfer, realRailEnabled, type BroadcastReceipt } from './real-broadcast.js';
 
 /**
  * SpendGuard API — a zero-dependency node:http backend that wires the full
@@ -422,9 +423,22 @@ const server = createServer(async (req, res) => {
 
     const proof = ledger.makeProof(decision);
     const chainId = defaultPaymentNormalizer.extractBinding(intent).chainId;
+
+    // ---- REAL rail: on allow, actually sign + broadcast the approved binding ----
+    let real: { status: 'broadcast'; receipt: BroadcastReceipt }
+      | { status: 'off' } | { status: 'error'; error: string } = { status: 'off' };
+    if (decision.verdict === 'allow' && decision.approvedBinding && realRailEnabled()) {
+      try {
+        real = { status: 'broadcast', receipt: await broadcastBoundTransfer(decision.approvedBinding) };
+      } catch (e) {
+        real = { status: 'error', error: (e as Error).message };
+      }
+    }
+
     return json(res, decision.verdict === 'allow' ? 200 : (decision.verdict === 'require_human' ? 202 : 403), {
       decision,
       bind,
+      real,
       window: w.state,
       proof: { ...proof, explorerUrl: explorerHashUrl(chainId, proof.proofHash) },
     });

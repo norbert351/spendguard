@@ -134,7 +134,11 @@ Response semantics (proper HTTP):
 
 **Build is feature-complete and verified** — persistent DB, key-auth, schema-forced, explorer receipts, HITL, freeze, velocity, live-agent seam, 3 agents + IXS RWA track.
 
-**Not production-money-wired:** the adapters gate *real-shaped* intents but do NOT broadcast real transfers — a live AgentKit CDP / real Robinhood order still needs the operator's credentials + a funded account. The guardrail rail is fully functional; the rails' keys are the final integration step.
+**REAL rail (testnet) — VERIFIED LIVE:** the guardrail now *acts* on an `allow`, not just decides. Behind `REAL_RAIL=1`, `/api/agent/action` signs + broadcasts the approved native binding to **Base Sepolia** and returns a real `txHash` (+ explorer link) in the proof. Verified on-chain, live at `spendguard.afterhourequity.xyz`:
+- `allow` → broadcast tx `0x39805e56…82fb3` (block 47282295, 0.0001 ETH, from `0x3360…7C2`)
+- `deny` (over-cap / injection / payee) → **no tx**, reason logged.
+
+**Not production-money-wired:** the real rail broadcasts the **native token on testnet** (Base Sepolia) only. Token (USDC) bindings are refused with a clear error — no fake ERC20 broadcast. Real mainnet money + ERC20 transfers require operator credentials + a funded account; the rail is fully functional, the rails' keys are the final integration step.
 
 ---
 

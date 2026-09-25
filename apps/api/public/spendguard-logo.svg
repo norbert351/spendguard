@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="SpendGuard logo">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff0c2"/>
+      <stop offset="0.30" stop-color="#ffc14d"/>
+      <stop offset="0.55" stop-color="#ff8a1f"/>
+      <stop offset="1" stop-color="#e05600"/>
+    </linearGradient>
+    <linearGradient id="goldDeep" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb347"/>
+      <stop offset="0.5" stop-color="#f67a12"/>
+      <stop offset="1" stop-color="#b84400"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="shineH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- soft ground shadow -->
+  <path d="M256 40 L430 118 v120 c0 114 -70 202 -174 236 C152 508 82 416 82 304 V118 Z" fill="#000" fill-opacity="0.35"/>
+
+  <!-- outer shield (offset base layer for depth) -->
+  <path d="M256 40 L430 118 v120 c0 114 -70 202 -174 236 C152 508 82 416 82 304 V118 Z" fill="url(#goldDeep)"/>
+  <!-- shield face -->
+  <path d="M256 48 L424 124 v116 c0 110 -67 194 -168 228 C155 502 88 416 88 306 V124 Z" fill="url(#gold)"/>
+  <path d="M256 48 L424 124 v116 c0 110 -67 194 -168 228 C155 502 88 416 88 306 V124 Z" fill="none" stroke="#8f3d00" stroke-width="9" stroke-linejoin="round"/>
+  <!-- gloss highlight top -->
+  <path d="M112 134 L256 72 L400 134 v66 L256 152 L112 200 Z" fill="url(#shine)" opacity="0.4"/>
+
+  <!-- inner dark field -->
+  <path d="M256 120 L374 168 V252 c0 72 -47 128 -118 156 C123 392 82 332 82 252 V168 Z" fill="#0d0a06"/>
+
+  <!-- ================= S RIBBON (bright 3D gold) ================= -->
+  <!-- LOWER loop: from top-right around to bottom-left -->
+  <!-- under-shadow (volume behind) -->
+  <path d="M150 366 C150 330 178 306 210 302 L332 286 C362 282 380 262 376 236
+           C372 212 354 196 328 200 L196 234" fill="none" stroke="#7a2e00" stroke-width="58" stroke-linecap="round" opacity="0.9"/>
+  <!-- main ribbon -->
+  <path d="M150 366 C150 330 178 306 210 302 L332 286 C362 282 380 262 376 236
+           C372 212 354 196 328 200 L196 234" fill="none" stroke="url(#gold)" stroke-width="52" stroke-linecap="round"/>
+  <!-- top highlight on lower loop -->
+  <path d="M150 366 C150 330 178 306 210 302 L332 286" fill="none" stroke="url(#shineH)" stroke-width="10" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- UPPER loop: from bottom-left up over top -->
+  <path d="M194 242 L330 208 C354 204 372 190 376 166
+           C380 142 362 122 334 120 L212 134 C180 138 154 154 152 182"
+        fill="none" stroke="#7a2e00" stroke-width="58" stroke-linecap="round" opacity="0.9"/>
+  <path d="M194 242 L330 208 C354 204 372 190 376 166
+           C380 142 362 122 334 120 L212 134 C180 138 154 154 152 182"
+        fill="none" stroke="url(#gold)" stroke-width="52" stroke-linecap="round"/>
+  <!-- top highlight on upper loop -->
+  <path d="M196 240 L330 206 C352 202 368 190 373 168" fill="none" stroke="url(#shineH)" stroke-width="10" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- ================= CREDIT CARD (dark, gold chip) ================= -->
+  <g transform="translate(258 228) rotate(-8)">
+    <rect x="-88" y="-50" width="176" height="100" rx="12" fill="#161616" stroke="#413a31" stroke-width="4"/>
+    <rect x="-70" y="-30" width="34" height="28" rx="6" fill="url(#gold)"/>
+    <path d="M-70 -17 h34 M-64 -8 h28 M-70 -30 v28 M-54 -30 v28 M-38 -30 v28" stroke="#7a3c00" stroke-width="2.2" fill="none"/>
+    <rect x="26" y="-33" width="50" height="9" rx="4.5" fill="url(#gold)"/>
+    <rect x="40" y="-17" width="36" height="9" rx="4.5" fill="url(#gold)"/>
+    <rect x="40" y="-1" width="36" height="9" rx="4.5" fill="url(#gold)"/>
+    <rect x="26" y="-33" width="50" height="9" rx="4.5" fill="url(#shineH)" opacity="0.5"/>
+  </g>
+
+  <!-- ================= VERIFICATION SHIELD + CHECK ================= -->
+  <g transform="translate(360 196)">
+    <path d="M0 2 L56 28 V88 C56 108 34 124 0 136 C-34 124 -56 108 -56 88 V28 Z" fill="#000" fill-opacity="0.45"/>
+    <path d="M0 0 L56 26 V84 C56 104 34 120 0 132 C-34 120 -56 104 -56 84 V26 Z" fill="url(#gold)"/>
+    <path d="M0 0 L56 26 V84 C56 104 34 120 0 132 C-34 120 -56 104 -56 84 V26 Z" fill="none" stroke="#8f3d00" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M-36 58 L-8 84 L36 30" fill="none" stroke="#120c04" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M-40 42 L0 22 L40 42 V58 L0 42 Z" fill="url(#shine)" opacity="0.4"/>
+  </g>
+</svg>

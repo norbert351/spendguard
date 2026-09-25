@@ -180,3 +180,19 @@ Run: `SPENDGUARD_PORT=8181 SPENDGUARD_API_KEY=... node apps/api/dist/index.js`
 - `POST /api/demo/overnight-loop` → **contained, 120 loop-burns stopped**
 - `POST /api/robinhood` wrong-acct order → `deny: agent_aimed_non_agentic_account`; allowed-acct $250 → `require_human` (HITL)
 - `GET /` → HTTP 200 UI; ledger integrity `VALID`
+
+## ✅ REAL RAIL — SpendGuard broadcasts for REAL (commit pending)
+Closed the honest-scope "never broadcasts a cent" gap. **On an `allow`, SpendGuard now signs + broadcasts**
+the approved binding to **Base Sepolia** and returns a real `txHash`; on `deny` it broadcasts nothing.
+- `apps/api/src/real-broadcast.ts` — the ONLY place a real wallet signs. OFF by default (`REAL_RAIL!=1`);
+  lazy-imports ethers (zero-dep default path untouched); native-only + single-chain (84532) by design.
+- `apps/api/src/index.ts` `/api/agent/action` — on `allow` + `realRailEnabled()` → `broadcastBoundTransfer` →
+  `{ status:'broadcast', receipt:{ txHash, from, explorerUrl } }` appended to the response. `deny`/`require_human` never sign.
+- `test/live-agent.mjs` + `npm run test:real` — boots the API w/ real rail, fires allow (real tx) + over-cap deny (no tx).
+- `apps/api/test/real-broadcast.test.mjs` — deterministic invariants: OFF-by-default, no-sign-when-off,
+  token/USDC refused, wrong-chain refused. (60→ **64/64** total.)
+- Secret lives in `data/.env.real` (gitignored via `.env.*`), sourced by the keepalive. enable live demo.
+- **Verified live on `spendguard.afterhourequity.xyz`:**
+  `allow` → tx `0x39805e56…82fb3` (block 47282295, 0.0001 ETH, from `0x3360…7C2`); `deny` → `real: off`, no tx.
+  Wallet: humanpay executor `0x3360DA7D976D7ED5Fe79Ee8022f539fb9af8f7C2` (~0.02 ETH Base Sepolia), the only
+  funded non-compromised Base Sepolia wallet on this VM (scan of ~7 wallets + derived keys; `0x73b1…` = compiled, excluded).

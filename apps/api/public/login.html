@@ -4,13 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SpendGuard — Sign in</title>
+<link rel="icon" type="image/svg+xml" href="./spendguard-logo.svg">
 <style>
   * { box-sizing: border-box; margin: 0; }
   body { background: #121212; color: #eee; font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
     min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; }
   .card { background: #1d1d1d; border: 1px solid #333; border-radius: 14px; padding: 28px; width: 100%; max-width: 360px; }
   h1 { font-size: 20px; letter-spacing: .4px; }
-  .shield { font-size: 34px; margin-bottom: 8px; }
+  .brandmark { width: 64px; height: 64px; margin: 0 auto 8px; display: block; }
   label { display: block; font-size: 13px; color: #999; margin: 14px 0 6px; }
   input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #444; background: #252525; color: #eee; font-size: 15px; }
   button { width: 100%; margin-top: 16px; padding: 12px; border: 0; border-radius: 9px; font-size: 15px; font-weight: 700; cursor: pointer; }
@@ -24,7 +25,7 @@
 </head>
 <body>
   <div class="card">
-    <div class="shield">🛡️</div>
+    <img class="brandmark" src="./spendguard-logo.svg" alt="SpendGuard">
     <h1>SpendGuard</h1>
     <p style="color:#999;font-size:13px;margin-top:4px;">Agent trust guardian — sign in to your fleet</p>
     <div id="registerForm">

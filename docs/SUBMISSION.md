@@ -69,9 +69,9 @@ entry.
 1. Landing → login.
 2. **Guardrail deny (money shot):** run `POST /api/demo/bill-swap` — approve $5, attacker swaps to $5,900/different payee → **refused**, ledger row written. 
 3. **Injection drain** demo → refused + logged with SERV verdict.
-4. **Ledger** — append-only rows: considered / did / declined + why, explorer links.
-5. HITL pending → approve → action proceeds on-policy.
-6. Real settlement proof is optional; the guardrail's proof is *denying*, which is the honest axis.
+4. **REAL rail (the honest money shot):** fire a legit `allow` on the live app → a **real signed tx hits Base Sepolia** (sepolia.basescan.org tx link on screen, ~few seconds to mine); then fire an over-cap/injection → `deny`, **no tx**. This is the "it really moves money — safely" proof.
+5. **Ledger** — append-only rows: considered / did / declined + why, explorer links. The real txHash is in the proof.
+6. HITL pending → approve → action proceeds on-policy.
 
 ---
 
@@ -96,7 +96,8 @@ cd apps/api && SERV_MODE=remote \
 
 ## F. Honest ✅/⚠️/❌ matrix (from the audit)
 - ✅ 60/60 tests · typecheck clean · live deploy (/sg/, /sg/app 200) · SERV load-bearing in code · x402-binder · immutable ledger · docs set · repo pushed
-- ⚠️ SERV runs **local** until you set `SERV_MODE=remote` + key (config now documented correctly)
+- ✅ **REAL rail live (Base Sepolia testnet):** `allow` actually signs + broadcasts — verified on-chain `0x39805e56…82fb3` (block 47282295) live; `deny` → no tx. See `README.md` honest scope + `test/live-agent.mjs` (`npm run test:real`, needs `REAL_WALLET_PK`).
+- ⚠️ SERV runs **remote** live (boot log `serv=remote`); falls back to `local` if the key is absent
 - ⚠️ Coinbase AgentKit SDK not integrated → Open Track recommended (or wire it for AgentKit track)
-- ⚠️ Submission still needs the **X post + typeform + demo video** (this pack)
-- ❌ (intentional) no fabricated SERV verdicts; ledger never records a settle it didn't verify
+- ⚠️ Submission still needs the **X post + typeform + demo video** (this pack); video now has a real money-shot step
+- ❌ (intentional) no fabricated SERV verdicts; token (USDC) broadcasts refused (real rail is native-only) — an honest boundary, never a fake ERC20 tx
