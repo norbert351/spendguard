@@ -7,4 +7,5 @@ dist/
 *.log
 data/*.sqlite
 data/*.sqlite-*
-data/backups/demo-take/
+data/backups/
+demo-take/
