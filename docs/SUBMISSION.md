@@ -34,7 +34,7 @@ entry.
 >
 > Counterfactual demo (real, replayable on the live app): a $5 approve → attacker swaps to $5,900 / a different payee → **refused**. A prompt-injection drain → **refused, logged**.
 >
-> Live demo: https://spendguard.afterhourequity.xyz/app · Code (MIT): https://github.com/norbert351/spendguard
+> Live demo: https://spendguard.afterhourequity.xyz/app · Demo video: https://spendguard.afterhourequity.xyz/spendguard-demo.mp4 · Code (MIT): https://github.com/norbert351/spendguard
 > [add screenshots: guardrail deny card + immutable ledger rows + inject test]
 >
 > #SERVHackathon #agents #safety #openserv

@@ -127,6 +127,14 @@
     <div id="layers"></div>
   </div>
 
+  <div class="glass" id="realrail">
+    <h3>REAL rail — live Base Sepolia broadcasts (testnet)</h3>
+    <div style="margin-bottom:8px">
+      <button class="btn ghost" onclick="runRealDeny()">Over-cap → deny (no tx)</button>
+    </div>
+    <div id="realOut" class="meta" style="margin-top:10px">✦ Verified allow broadcast (on-chain): tx <a target="_blank" href="https://sepolia.basescan.org/tx/0x39805e56dfd2ceb76f1f7144150b7190b9cdab226f11df63e882ff9c53582fb3">0x39805e56…82fb3</a> · Base Sepolia block 47282295 · 0.0001 ETH · from <b>0x3360…7C2</b><br/>On an allow, SpendGuard SIGNs + broadcasts; on a deny, nothing hits the chain. Fire the deny live above.</div>
+  </div>
+
   <div class="glass">
     <h3>Gate a Robinhood MCP order</h3>
     <div class="grid2">
@@ -202,6 +210,27 @@ async function refreshLedger(){
     return `<div class="row"><span class="lbl">${e.kind} · <b style="cursor:pointer;color:var(--amber2)" data-a="${e.actionId}" onclick="document.getElementById('proofId').value=this.dataset.a">${e.actionId.slice(0,8)}</b></span><span class="val ${cls}">${e.verdict}</span><span class="val">${e.reasonCode}</span><span class="meta">${(e.receiptId||"").slice(0,14)||""}</span></div>`;
   }).join("");
   document.getElementById("ledgerRows").innerHTML=`<div class="row"><span class="lbl">chain integrity</span><span class="val ${d.integrity.valid?"g":"r"}">${d.integrity.valid?`VALID · ${d.integrity.verified} events`:"BROKEN"}</span></div>`+rows;
+}
+
+const REAL_PAYEE = '0x10b4064504D3d0D400A607164190B04dE679A4A6'; // humanpay operator (real addr)
+
+async function runReal(){
+  const el=document.getElementById("realOut");
+  el.innerHTML="broadcasting a REAL signed tx to Base Sepolia…";
+  const d=await j("./api/agent/action",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({agentId:"sg-live",kind:"transfer",intent:{to:REAL_PAYEE,amount:"0.0001",chainId:84532,token:"native"}})});
+  if(d.real?.status==="broadcast"){
+    const r=d.real.receipt;
+    el.innerHTML=`<span class="val g">ALLOW → BROADCAST</span>&nbsp;<span class="meta">on-chain, for real</span><div class="code" style="margin-top:6px">tx&nbsp;<a target="_blank" href="${r.explorerUrl}">${r.txHash.slice(0,18)}…</a><br/>from ${r.from} · value ${r.value} ETH · ${r.network}<br/><a target="_blank" href="${r.explorerUrl}" class="meta">open on sepolia.basescan.org →</a></div>`;
+  } else {
+    el.innerHTML=`<span class="val ${d.decision.verdict==="allow"?"g":"r"}">${d.decision.verdict}</span>&nbsp;<span class="meta">${d.real?.status==="error"?d.real.error:d.decision.reason.code}</span>`;
+  }
+  refreshLedger(); refreshPending();
+}
+async function runRealDeny(){
+  const el=document.getElementById("realOut");
+  const d=await j("./api/agent/action",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({agentId:"sg-live",kind:"transfer",intent:{to:REAL_PAYEE,amount:"0.05",chainId:84532,token:"native"}})});
+  el.innerHTML=`<span class="val r">DENY → NOT broadcast</span>&nbsp;<span class="meta">${d.decision.reason.code} — ${d.decision.reason.detail}</span>`;
+  refreshLedger(); refreshPending();
 }
 
 async function runDemo(id){
